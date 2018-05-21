@@ -17,6 +17,9 @@ var (
 	FgYellow  = Colour{255, 255, 0}
 )
 
+// DefaultColour is a no colour. There will be no colouring when used.
+var DefaultColour = NoColour
+
 // Colour is a RGB colour scheme. R, G and B should be between 0 and 255.
 type Colour struct {
 	R, G, B int

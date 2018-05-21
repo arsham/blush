@@ -12,6 +12,10 @@ func TestNewLocatorExact(t *testing.T) {
 	if _, ok := l.(blush.Exact); !ok {
 		t.Errorf("l = %T, want *blush.Exact", l)
 	}
+	l = blush.NewLocator("*aaa")
+	if _, ok := l.(blush.Exact); !ok {
+		t.Errorf("l = %T, want *blush.Exact", l)
+	}
 }
 
 func TestNewLocatorRx(t *testing.T) {

@@ -4,10 +4,6 @@ import (
 	"strings"
 )
 
-var (
-	DefaultColour = Colour{}
-)
-
 // Arg contains a pair of colour name and corresponding regexp.
 type Arg struct {
 	Colour Colour

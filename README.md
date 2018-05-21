@@ -53,16 +53,16 @@ $ blush -b match1 match3 FILENAME
 
 ### Colour Groups
 
-You can provide a number as the colour arguments to create a colour group. For
-example, with:
+You can provide a number for a colour argument to create a colour group. For
+example:
 
 ```bash
-$ blush -1 match1 -2 match2 -1 match3 FILENAME
+$ blush -b1 match1 -b2 match2 -b1 match3 FILENAME
 ```
 
-Both `match1` and `match3` will be shown with the same `random` colour, while
-`match2` will be another random colour. This means the numbers will create
-colour groups.
+Both `match1` and `match3` will be shown with the same `random blue` colour,
+while `match2` will be another random blue colour. This means the numbers will
+create colour groups.
 
 You also can provide a colour with a series of grep requests:
 

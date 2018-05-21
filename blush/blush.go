@@ -1,10 +1,15 @@
 package blush
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"sort"
 	"strings"
+
+	"github.com/arsham/blush/tools"
+	"github.com/pkg/errors"
 )
 
 // Blush has a slice of given regexp, matching paths, and operation
@@ -25,13 +30,12 @@ func New(input string) (*Blush, error) {
 	}
 	remains, p, err := files(input)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "provided files")
 	}
 	g := &Blush{
 		Paths: p,
 	}
-
-	if remains, ok = hasArg(remains, "-s"); ok {
+	if remains, ok = hasArg(remains, "-i"); ok {
 		g.Sensitive = true
 	}
 	if remains, ok = hasArg(remains, "-R"); ok {
@@ -40,6 +44,41 @@ func New(input string) (*Blush, error) {
 
 	g.Args = getArgs(remains)
 	return g, nil
+}
+
+// WriteTo writes matches to w.
+func (b Blush) Write(w io.Writer) error {
+	files, err := tools.Files(b.Recursive, b.Paths...)
+	if err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	for _, f := range files {
+		if err := b.find(w, f); err != nil {
+			return errors.Wrap(err, f)
+		}
+	}
+	return nil
+}
+
+func (b Blush) find(w io.Writer, path string) error {
+	file, err := os.Open(path)
+	if err != nil {
+		return errors.Wrap(err, path)
+	}
+	defer file.Close()
+	scanner := bufio.NewScanner(file)
+	scanner.Split(bufio.ScanLines)
+	for scanner.Scan() {
+		line := scanner.Text()
+		for _, a := range b.Args {
+			s, ok := a.Find.Find(line, a.Colour)
+			if ok {
+				fmt.Fprint(w, s)
+			}
+		}
+	}
+	return nil
 }
 
 // files starts from the end and removes any file matches it finds and returns
