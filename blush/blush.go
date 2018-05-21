@@ -19,21 +19,22 @@ type Blush struct {
 	Paths     []string
 	Sensitive bool // case sensitivity
 	Recursive bool
+	Colouring bool
 }
 
 // New returns an error if `a` is empty, or there is no files found. You should
 // remove the application name otherwise it will be accounted as an expression.
 func New(input string) (*Blush, error) {
-	var ok bool
+	var (
+		g       = &Blush{}
+		ok      bool
+		remains string
+	)
 	if input == "" {
 		return nil, ErrNoInput
 	}
-	remains, p, err := files(input)
-	if err != nil {
-		return nil, errors.Wrap(err, "provided files")
-	}
-	g := &Blush{
-		Paths: p,
+	if remains, ok = hasArg(input, "-C"); ok {
+		g.Colouring = true
 	}
 	if remains, ok = hasArg(remains, "-i"); ok {
 		g.Sensitive = true
@@ -41,6 +42,12 @@ func New(input string) (*Blush, error) {
 	if remains, ok = hasArg(remains, "-R"); ok {
 		g.Recursive = true
 	}
+
+	remains, p, err := files(remains)
+	if err != nil {
+		return nil, errors.Wrap(err, "provided files")
+	}
+	g.Paths = p
 
 	g.Args = getArgs(remains)
 	return g, nil
@@ -71,11 +78,16 @@ func (b Blush) find(w io.Writer, path string) error {
 	scanner.Split(bufio.ScanLines)
 	for scanner.Scan() {
 		line := scanner.Text()
+		lineWritten := false
 		for _, a := range b.Args {
 			s, ok := a.Find.Find(line, a.Colour)
 			if ok {
-				fmt.Fprint(w, s)
+				fmt.Fprintf(w, "%s\n", s)
+				lineWritten = true
 			}
+		}
+		if !lineWritten && b.Colouring {
+			fmt.Fprintf(w, "%s\n", line)
 		}
 	}
 	return nil

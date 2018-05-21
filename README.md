@@ -1,5 +1,12 @@
 # Blush
-Grep with colours.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![GoDoc](https://godoc.org/github.com/arsham/blush?status.svg)](http://godoc.org/github.com/arsham/blush)
+[![Build Status](https://travis-ci.org/arsham/blush.svg?branch=master)](https://travis-ci.org/arsham/blush)
+[![Coverage Status](https://codecov.io/gh/arsham/blush/branch/master/graph/badge.svg)](https://codecov.io/gh/arsham/blush)
+[![Go Report Card](https://goreportcard.com/badge/github.com/arsham/blush)](https://goreportcard.com/report/github.com/arsham/blush)
+
+With Blush, you can grep with colours, many colours!
 
 ## Usage
 
@@ -7,10 +14,13 @@ Grep with colours.
 
 This method greps the line that matches the input:
 ```bash
-$ blush -b "print in blue" -g "in green" -g "another green" files/paths
+$ blush -b "first search" -g "second one" -g "and another one" files/paths
 ```
 
-### Match All Method
+Any occurrence of `first search` will be in blue, `second one` and `and another one`
+are in green.
+
+### Colouring Method
 
 With this method all texts are shown, but the matching words are coloured. You
 can activate this mode by providing `--color` argument.
@@ -29,7 +39,7 @@ $ cat FILENAME | blush "some text"
 +----------+----------+-------------------------------+
 | Argument | Shortcut |             Notes             |
 +----------+----------+-------------------------------+
-| --colour | -c       | Don't drop non-matched lines. |
+| --colour | -C       | Colour, don't drop anything.  |
 | --rand   | N/A      | Chooses a random colour.      |
 | N/A      | -i       | Case insensitive matching     |
 | N/A      | -R       | Recursive                     |

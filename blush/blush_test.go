@@ -13,7 +13,10 @@ import (
 )
 
 // In the testdata folder, there are three files. In each file there are 1 ONE,
-// 2 TWO, 3 THREE and 4 FOURs.
+// 2 TWO, 3 THREE and 4 FOURs. There is a line containing `LEAVEMEHERE` which
+// does not collide with any of these numbers.
+
+var leaveMeHere = "LEAVEMEHERE"
 
 func TestNewErrors(t *testing.T) {
 	tcs := []struct {
@@ -340,6 +343,9 @@ func TestWriteMatchNoColourPlain(t *testing.T) {
 	if strings.Contains(buf.String(), "[38;5;") {
 		t.Errorf("didn't expect colouring: `%s`", buf.String())
 	}
+	if strings.Contains(buf.String(), leaveMeHere) {
+		t.Errorf("didn't expect to see %s", leaveMeHere)
+	}
 }
 
 func TestWriteMatchColour(t *testing.T) {
@@ -363,6 +369,9 @@ func TestWriteMatchColour(t *testing.T) {
 	}
 	if !strings.Contains(buf.String(), match) {
 		t.Errorf("want `%s` in `%s`", match, buf.String())
+	}
+	if strings.Contains(buf.String(), leaveMeHere) {
+		t.Errorf("didn't expect to see %s", leaveMeHere)
 	}
 }
 
@@ -408,6 +417,9 @@ func TestWriteMatchCountColour(t *testing.T) {
 			if count != tc.count {
 				t.Errorf("count = %d, want %d", count, tc.count)
 			}
+			if strings.Contains(buf.String(), leaveMeHere) {
+				t.Errorf("didn't expect to see %s", leaveMeHere)
+			}
 		})
 	}
 }
@@ -440,5 +452,43 @@ func TestWriteMultiColour(t *testing.T) {
 	count = strings.Count(buf.String(), three)
 	if count != 3*3 {
 		t.Errorf("count = %d, want %d", count, 3*3)
+	}
+	if strings.Contains(buf.String(), leaveMeHere) {
+		t.Errorf("didn't expect to see %s", leaveMeHere)
+	}
+}
+
+func TestWriteMultiColourColourMode(t *testing.T) {
+	two := blush.Colourise("TWO", blush.FgMagenta)
+	three := blush.Colourise("THREE", blush.FgRed)
+	pwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	location := path.Join(pwd, "testdata")
+	input := fmt.Sprintf("-C -R -mg TWO -r THREE %s", location)
+	l, err := blush.New(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	buf := new(bytes.Buffer)
+	err = l.Write(buf)
+	if buf.Len() == 0 {
+		t.Errorf("buf.Len() = %d, want > 0", buf.Len())
+	}
+	if err != nil {
+		t.Errorf("err = %v, want %v", err, nil)
+	}
+	count := strings.Count(buf.String(), two)
+	if count != 2*3 {
+		t.Errorf("count = %d, want %d", count, 2*3)
+	}
+	count = strings.Count(buf.String(), three)
+	if count != 3*3 {
+		t.Errorf("count = %d, want %d", count, 3*3)
+	}
+	count = strings.Count(buf.String(), leaveMeHere)
+	if count != 1 {
+		t.Errorf("count = %d, want to see `%s` exactly %d times", count, leaveMeHere, 1)
 	}
 }
