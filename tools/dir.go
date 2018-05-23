@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 )
 
-// Files returns all files found in all paths. If recursive is false, it only
+// Files returns all files found in paths. If recursive is false, it only
 // returns the immediate files in the paths.
 func Files(recursive bool, paths ...string) ([]string, error) {
 	var (

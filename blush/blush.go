@@ -5,56 +5,37 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sort"
-	"strings"
 
 	"github.com/arsham/blush/tools"
 	"github.com/pkg/errors"
 )
 
 // Blush has a slice of given regexp, matching paths, and operation
-// configurations.
+// configuration.
 type Blush struct {
-	Args      []Arg
-	Paths     []string
-	Sensitive bool // case sensitivity
-	Recursive bool
-	Colouring bool
+	Args        []Arg
+	Paths       []string
+	Insensitive bool
+	Recursive   bool
+	Colouring   bool
 }
 
-// New returns an error if `a` is empty, or there is no files found. You should
-// remove the application name otherwise it will be accounted as an expression.
-func New(input string) (*Blush, error) {
-	var (
-		g       = &Blush{}
-		ok      bool
-		remains string
-	)
-	if input == "" {
-		return nil, ErrNoInput
-	}
-	if remains, ok = hasArg(input, "-C"); ok {
-		g.Colouring = true
-	}
-	if remains, ok = hasArg(remains, "-i"); ok {
-		g.Sensitive = true
-	}
-	if remains, ok = hasArg(remains, "-R"); ok {
-		g.Recursive = true
-	}
-
-	remains, p, err := files(remains)
-	if err != nil {
-		return nil, errors.Wrap(err, "provided files")
-	}
-	g.Paths = p
-
-	g.Args = getArgs(remains)
-	return g, nil
+// Arg contains a pair of colour name and corresponding matcher.
+type Arg struct {
+	Colour Colour
+	Find   Locator
 }
 
-// WriteTo writes matches to w.
+// WriteTo writes matches to w. It returns an error if the writer is nil or
+// there are not paths defined or there is no files found in the Paths.
 func (b Blush) Write(w io.Writer) error {
+	if w == nil {
+		return ErrNoWriter
+	}
+	if b.Paths == nil {
+		return ErrNoFiles
+	}
+
 	files, err := tools.Files(b.Recursive, b.Paths...)
 	if err != nil {
 		return errors.Wrap(err, "write")
@@ -91,50 +72,4 @@ func (b Blush) find(w io.Writer, path string) error {
 		}
 	}
 	return nil
-}
-
-// files starts from the end and removes any file matches it finds and returns
-// them.
-func files(input string) (remaining string, p []string, err error) {
-	var (
-		foundOne bool
-		counter  int
-		ret      []string
-	)
-	input = strings.Trim(input, " ")
-	tokens := strings.Split(input, " ")
-	sort.Slice(tokens, func(i, j int) bool {
-		return i > j
-	})
-	for _, t := range tokens {
-		if inStringSlice(t, p) {
-			continue
-		}
-		if _, err := os.Stat(t); err == nil {
-			foundOne = true
-			p = append(p, t)
-			counter++
-			continue
-		}
-		if !foundOne {
-			return input, nil, fmt.Errorf("%s not found", t)
-		}
-		ret = append(ret, t)
-	}
-
-	//We have reversed it. We need to return back in the same order.
-	sort.Slice(ret, func(i, j int) bool {
-		return i > j
-	})
-	remaining = strings.Join(ret, " ")
-	return remaining, p, nil
-}
-
-func inStringSlice(s string, haystack []string) bool {
-	for _, a := range haystack {
-		if a == s {
-			return true
-		}
-	}
-	return false
 }
