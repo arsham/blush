@@ -12,7 +12,7 @@ import (
 )
 
 func setup(t *testing.T, count int) (dirs, expect []string, cleanup func()) {
-	ret := make(map[string]struct{}, 0)
+	ret := make(map[string]struct{})
 	tmp, err := ioutil.TempDir("", "blush")
 	if err != nil {
 		t.Fatal(err)
@@ -91,6 +91,41 @@ func TestFiles(t *testing.T) {
 	}
 	if len(f) != 20 { // all files in `a` and `abc`
 		t.Errorf("len(f) = %d, want %d: %v", len(f), 20, f)
+	}
+}
+
+func TestFilesOnSingleFile(t *testing.T) {
+	file, err := ioutil.TempFile("", "blush_tools")
+	if err != nil {
+		t.Fatal(err)
+	}
+	name := file.Name()
+	defer func() {
+		if err := os.Remove(name); err != nil {
+			t.Error(err)
+		}
+	}()
+
+	f, err := tools.Files(true, name)
+	if err != nil {
+		t.Errorf("err = %v, want nil", err)
+	}
+	if len(f) != 1 {
+		t.Fatalf("len(f) = %d, want 1", len(f))
+	}
+	if f[0] != name {
+		t.Errorf("f[0] = %s, want %s", f[0], name)
+	}
+
+	f, err = tools.Files(false, name)
+	if err != nil {
+		t.Errorf("err = %v, want nil", err)
+	}
+	if len(f) != 1 {
+		t.Fatalf("len(f) = %d, want 1", len(f))
+	}
+	if f[0] != name {
+		t.Errorf("f[0] = %s, want %s", f[0], name)
 	}
 }
 

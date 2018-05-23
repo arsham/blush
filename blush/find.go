@@ -13,16 +13,29 @@ type Locator interface {
 	Find(string, Colour) (string, bool)
 }
 
-var isRegExp = regexp.MustCompile(`[\^\$\.\{\}\[\]\*]`)
+var isRegExp = regexp.MustCompile(`[\^\$\.\{\}\[\]\*\?]`)
 
 // NewLocator returns a `rx` object id the `input` is a valid regexp, otherwise
-// it returns a plain locator.
-func NewLocator(input string) Locator {
+// it returns a plain locator. If caseInsensitive is true, the match will be
+// case insensitive.
+func NewLocator(input string, caseInsensitive bool) Locator {
 	if !isRegExp.Match([]byte(input)) {
+		if caseInsensitive {
+			return Iexact(input)
+		}
 		return Exact(input)
 	}
-	dec := fmt.Sprintf("(%s)", input)
-	if o, err := regexp.Compile(dec); err == nil {
+
+	decore := fmt.Sprintf("(%s)", input)
+	if caseInsensitive {
+		decore = fmt.Sprintf("(?i)%s", decore)
+		if o, err := regexp.Compile(decore); err == nil {
+			return Rx{o}
+		}
+		return Iexact(input)
+	}
+
+	if o, err := regexp.Compile(decore); err == nil {
 		return Rx{o}
 	}
 	return Exact(input)
@@ -44,6 +57,27 @@ func (e Exact) colourise(input string, c Colour) string {
 		return input
 	}
 	return strings.Replace(input, string(e), Colourise(string(e), c), -1)
+}
+
+// Iexact is like Exact but case insensitive.
+type Iexact string
+
+// Find looks for the exact string.
+func (i Iexact) Find(input string, c Colour) (string, bool) {
+	if strings.Contains(strings.ToLower(input), strings.ToLower(string(i))) {
+		return i.colourise(input, c), true
+	}
+	return "", false
+}
+
+func (i Iexact) colourise(input string, c Colour) string {
+	if c == NoColour {
+		return input
+	}
+	index := strings.Index(strings.ToLower(input), strings.ToLower(string(i)))
+	end := len(string(i)) + index
+	match := input[index:end]
+	return strings.Replace(input, match, Colourise(match, c), -1)
 }
 
 // Rx is the regexp implementation of the Locator.

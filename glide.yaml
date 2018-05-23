@@ -1,0 +1,3 @@
+package: github.com/arsham/blush
+import:
+- package: github.com/pkg/errors

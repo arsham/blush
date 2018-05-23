@@ -4,70 +4,51 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"os"
-
-	"github.com/arsham/blush/tools"
-	"github.com/pkg/errors"
 )
 
 // Blush has a slice of given regexp, matching paths, and operation
-// configuration.
+// configuration. If NoCut is true, the unmatched lines are printed as well.
 type Blush struct {
-	Args        []Arg
-	Paths       []string
-	Insensitive bool
-	Recursive   bool
-	Colouring   bool
+	Locator []ColourLocator
+	Reader  io.ReadCloser
+	NoCut   bool
 }
 
-// Arg contains a pair of colour name and corresponding matcher.
-type Arg struct {
+// ColourLocator contains a pair of colour name and corresponding matcher.
+type ColourLocator struct {
+	Locator
 	Colour Colour
-	Find   Locator
 }
 
 // WriteTo writes matches to w. It returns an error if the writer is nil or
-// there are not paths defined or there is no files found in the Paths.
+// there are not paths defined or there is no files found in the Reader.
 func (b Blush) Write(w io.Writer) error {
 	if w == nil {
 		return ErrNoWriter
 	}
-	if b.Paths == nil {
-		return ErrNoFiles
+	if b.Reader == nil {
+		return ErrNoInput
 	}
-
-	files, err := tools.Files(b.Recursive, b.Paths...)
-	if err != nil {
-		return errors.Wrap(err, "write")
-	}
-
-	for _, f := range files {
-		if err := b.find(w, f); err != nil {
-			return errors.Wrap(err, f)
-		}
+	if err := b.find(w, b.Reader); err != nil {
+		return err
 	}
 	return nil
 }
 
-func (b Blush) find(w io.Writer, path string) error {
-	file, err := os.Open(path)
-	if err != nil {
-		return errors.Wrap(err, path)
-	}
-	defer file.Close()
+func (b Blush) find(w io.Writer, file io.Reader) error {
 	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)
 	for scanner.Scan() {
 		line := scanner.Text()
 		lineWritten := false
-		for _, a := range b.Args {
-			s, ok := a.Find.Find(line, a.Colour)
+		for _, a := range b.Locator {
+			s, ok := a.Find(line, a.Colour)
 			if ok {
 				fmt.Fprintf(w, "%s\n", s)
 				lineWritten = true
 			}
 		}
-		if !lineWritten && b.Colouring {
+		if !lineWritten && b.NoCut {
 			fmt.Fprintf(w, "%s\n", line)
 		}
 	}

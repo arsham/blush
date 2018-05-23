@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"io"
 	"log"
 	"os"
 	"sort"
@@ -28,12 +29,16 @@ func Main() {
 		return
 	}
 
-	b.Write(os.Stdout)
+	if err = b.Write(os.Stdout); err != nil {
+		FatalErr(err.Error())
+		return
+	}
 }
 
 // GetBlush returns an error if no arguments are provided or it can't find all
 // the passed files. Files should be last arguments, otherwise they are counted
-// as matching strings. We are not using the usual flag package because it
+// as matching strings. If there is no file passed, the input should come in
+// from Stdin as a pipe. We are not using the usual flag package because it
 // cannot handle variables in the args.
 func GetBlush(input []string) (b *blush.Blush, err error) {
 	var ok bool
@@ -41,22 +46,43 @@ func GetBlush(input []string) (b *blush.Blush, err error) {
 	if len(input) == 1 {
 		return nil, ErrNoInput
 	}
-	remains, p, err := files(input[1:])
+	remaining, r, err := getReader(input[1:])
 	if err != nil {
 		return nil, err
 	}
-	if remains, ok = hasArg(remains, "-C"); ok {
-		b.Colouring = true
+	b.Reader = r
+	if remaining, ok = hasArg(remaining, "-C"); ok {
+		b.NoCut = true
 	}
-	if remains, ok = hasArg(remains, "-i"); ok {
-		b.Insensitive = true
-	}
-	if remains, ok = hasArg(remains, "-R"); ok {
-		b.Recursive = true
-	}
-	b.Paths = p
-	b.Args = getArgs(remains)
+	b.Locator = getArgs(remaining)
 	return
+}
+
+// getReader returns os.Stdin if it is piped to the program, otherwise looks for
+// files.
+func getReader(input []string) (remaining []string, r io.ReadCloser, err error) {
+	var (
+		recursive bool
+		ok        bool
+	)
+	remaining, ok = hasArg(input, "-R")
+	if ok {
+		recursive = true
+	}
+	stat, _ := os.Stdin.Stat()
+	if (stat.Mode() & os.ModeCharDevice) == 0 {
+		return remaining, os.Stdin, nil
+	}
+
+	remaining, p, err := files(input)
+	if err != nil {
+		return nil, nil, err
+	}
+	w, err := blush.NewWalker(p, recursive)
+	if err != nil {
+		return nil, nil, err
+	}
+	return remaining, w, nil
 }
 
 // files starts from the end of the slice and removes any file it finds and
@@ -113,19 +139,24 @@ func hasArg(input []string, arg string) ([]string, bool) {
 	return input, false
 }
 
-func getArgs(input []string) []blush.Arg {
+func getArgs(input []string) []blush.ColourLocator {
 	var (
-		lastColour = blush.DefaultColour
-		ret        []blush.Arg
+		lastColour  = blush.DefaultColour
+		ret         []blush.ColourLocator
+		insensitive bool
+		ok          bool
 	)
+	if input, ok = hasArg(input, "-i"); ok {
+		insensitive = true
+	}
 	for _, token := range input {
 		if strings.HasPrefix(token, "-") {
 			lastColour = colorFromArg(token)
 			continue
 		}
-		a := blush.Arg{
-			Colour: lastColour,
-			Find:   blush.NewLocator(token),
+		a := blush.ColourLocator{
+			Colour:  lastColour,
+			Locator: blush.NewLocator(token, insensitive),
 		}
 		ret = append(ret, a)
 	}

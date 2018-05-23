@@ -105,3 +105,9 @@ You must put your complex grep into quotations:
 ```bash
 $ blush -b "^age: [0-9]+" FILENAME
 ```
+
+## Roadmap
+
+* [ ] implement all grep arguments.
+* [ ] set up user defined config files.
+* [ ] internal pager and fuzzy search.

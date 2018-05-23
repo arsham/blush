@@ -65,6 +65,9 @@ func rfiles(location string) ([]string, error) {
 }
 
 func files(location string) ([]string, error) {
+	if s, err := os.Stat(location); err == nil && !s.IsDir() {
+		return []string{location}, nil
+	}
 	fileList := []string{}
 	files, err := ioutil.ReadDir(location)
 	if err != nil {

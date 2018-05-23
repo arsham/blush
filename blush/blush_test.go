@@ -20,15 +20,15 @@ var leaveMeHere = "LEAVEMEHERE"
 
 func TestWriteErrors(t *testing.T) {
 	w := new(bytes.Buffer)
+	r := ioutil.NopCloser(new(bytes.Buffer))
 	tcs := []struct {
 		name   string
 		b      blush.Blush
 		writer io.Writer
 		errTxt string
 	}{
-		{"empty", blush.Blush{}, w, blush.ErrNoFiles.Error()},
-		{"no writer", blush.Blush{}, nil, blush.ErrNoWriter.Error()},
-		{"no files", blush.Blush{Paths: []string{"/doesnotexist"}}, w, "doesnotexist"},
+		{"no input", blush.Blush{}, w, blush.ErrNoInput.Error()},
+		{"no writer", blush.Blush{Reader: r}, nil, blush.ErrNoWriter.Error()},
 	}
 
 	for _, tc := range tcs {
@@ -43,47 +43,6 @@ func TestWriteErrors(t *testing.T) {
 			}
 		})
 	}
-
-	dir, err := ioutil.TempDir("", "blush")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		err := os.RemoveAll(dir)
-		if err != nil {
-			t.Errorf("could not remove the folder: %s", dir)
-		}
-	}()
-	l := blush.Blush{
-		Paths: []string{"SHOULDNOTFINDTHISONE " + dir},
-	}
-	if err != nil {
-		t.Fatal(err)
-	}
-	buf := new(bytes.Buffer)
-	err = l.Write(buf)
-	if err == nil {
-		t.Error("err = nil, want error")
-	}
-
-	// Creating a file, letting Blush register it and then we remove it just
-	// before we attempt to read. It should throw an error.
-	name := path.Join(dir, "something")
-	_, err = os.Create(name)
-	if err != nil {
-		t.Fatal(err)
-	}
-	l = blush.Blush{
-		Paths: []string{"SHOULDNOTFINDTHISONE " + dir},
-	}
-	err = os.Remove(name)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = l.Write(buf)
-	if err == nil {
-		t.Error("err = nil, want error")
-	}
 }
 
 func TestWriteNoMatch(t *testing.T) {
@@ -92,10 +51,15 @@ func TestWriteNoMatch(t *testing.T) {
 		t.Fatal(err)
 	}
 	location := path.Join(pwd, "testdata")
+	w, err := blush.NewWalker([]string{location}, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	l := blush.Blush{
-		Paths: []string{location},
-		Args: []blush.Arg{
-			blush.Arg{Find: blush.Exact("SHOULDNOTFINDTHISONE")},
+		Reader: w,
+		Locator: []blush.ColourLocator{
+			blush.ColourLocator{Locator: blush.Exact("SHOULDNOTFINDTHISONE")},
 		},
 	}
 	buf := new(bytes.Buffer)
@@ -115,13 +79,16 @@ func TestWriteMatchNoColourPlain(t *testing.T) {
 		t.Fatal(err)
 	}
 	location := path.Join(pwd, "testdata")
+	w, err := blush.NewWalker([]string{location}, true)
+	if err != nil {
+		t.Fatal(err)
+	}
 	l := blush.Blush{
-		Recursive: true,
-		Paths:     []string{location},
-		Args: []blush.Arg{
-			blush.Arg{
-				Colour: blush.NoColour,
-				Find:   blush.Exact(match),
+		Reader: w,
+		Locator: []blush.ColourLocator{
+			blush.ColourLocator{
+				Colour:  blush.NoColour,
+				Locator: blush.Exact(match),
 			},
 		},
 	}
@@ -152,12 +119,16 @@ func TestWriteMatchColour(t *testing.T) {
 		t.Fatal(err)
 	}
 	location := path.Join(pwd, "testdata")
+	w, err := blush.NewWalker([]string{location}, true)
+	if err != nil {
+		t.Fatal(err)
+	}
 	l := blush.Blush{
-		Paths: []string{location},
-		Args: []blush.Arg{
-			blush.Arg{
-				Colour: blush.FgBlue,
-				Find:   blush.Exact("TOKEN"),
+		Reader: w,
+		Locator: []blush.ColourLocator{
+			blush.ColourLocator{
+				Colour:  blush.FgBlue,
+				Locator: blush.Exact("TOKEN"),
 			},
 		},
 	}
@@ -183,7 +154,7 @@ func TestWriteMatchCountColour(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	location := path.Join(pwd, "testdata")
+
 	tcs := []struct {
 		name      string
 		recursive bool
@@ -201,14 +172,18 @@ func TestWriteMatchCountColour(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
+			location := path.Join(pwd, "testdata")
+			w, err := blush.NewWalker([]string{location}, tc.recursive)
+			if err != nil {
+				t.Fatal(err)
+			}
 			match := blush.Colourise(tc.name, blush.FgRed)
 			l := blush.Blush{
-				Paths:     []string{location},
-				Recursive: tc.recursive,
-				Args: []blush.Arg{
-					blush.Arg{
-						Colour: blush.FgRed,
-						Find:   blush.Exact(tc.name),
+				Reader: w,
+				Locator: []blush.ColourLocator{
+					blush.ColourLocator{
+						Colour:  blush.FgRed,
+						Locator: blush.Exact(tc.name),
 					},
 				},
 			}
@@ -237,17 +212,20 @@ func TestWriteMultiColour(t *testing.T) {
 		t.Fatal(err)
 	}
 	location := path.Join(pwd, "testdata")
+	w, err := blush.NewWalker([]string{location}, true)
+	if err != nil {
+		t.Fatal(err)
+	}
 	l := blush.Blush{
-		Paths:     []string{location},
-		Recursive: true,
-		Args: []blush.Arg{
-			blush.Arg{
-				Colour: blush.FgMagenta,
-				Find:   blush.Exact("TWO"),
+		Reader: w,
+		Locator: []blush.ColourLocator{
+			blush.ColourLocator{
+				Colour:  blush.FgMagenta,
+				Locator: blush.Exact("TWO"),
 			},
-			blush.Arg{
-				Colour: blush.FgRed,
-				Find:   blush.Exact("THREE"),
+			blush.ColourLocator{
+				Colour:  blush.FgRed,
+				Locator: blush.Exact("THREE"),
 			},
 		},
 	}
@@ -281,18 +259,21 @@ func TestWriteMultiColourColourMode(t *testing.T) {
 		t.Fatal(err)
 	}
 	location := path.Join(pwd, "testdata")
+	w, err := blush.NewWalker([]string{location}, true)
+	if err != nil {
+		t.Fatal(err)
+	}
 	l := blush.Blush{
-		Paths:     []string{location},
-		Recursive: true,
-		Colouring: true,
-		Args: []blush.Arg{
-			blush.Arg{
-				Colour: blush.FgMagenta,
-				Find:   blush.Exact("TWO"),
+		Reader: w,
+		NoCut:  true,
+		Locator: []blush.ColourLocator{
+			blush.ColourLocator{
+				Colour:  blush.FgMagenta,
+				Locator: blush.Exact("TWO"),
 			},
-			blush.Arg{
-				Colour: blush.FgRed,
-				Find:   blush.Exact("THREE"),
+			blush.ColourLocator{
+				Colour:  blush.FgRed,
+				Locator: blush.Exact("THREE"),
 			},
 		},
 	}
@@ -317,4 +298,8 @@ func TestWriteMultiColourColourMode(t *testing.T) {
 	if count != 1 {
 		t.Errorf("count = %d, want to see `%s` exactly %d times", count, leaveMeHere, 1)
 	}
+}
+
+func TestPrintFileName(t *testing.T) {
+
 }
