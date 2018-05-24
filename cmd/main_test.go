@@ -26,6 +26,9 @@ func (s *stdFile) String() string {
 	buf.ReadFrom(s.f)
 	return buf.String()
 }
+func (s *stdFile) Close() error {
+	return s.f.Close()
+}
 
 func newStdFile(t *testing.T, name string) (*stdFile, func()) {
 	f, err := ioutil.TempFile("", name)
@@ -69,6 +72,26 @@ func setup(t *testing.T, args string) (stdout, stderr *stdFile, cleanup func()) 
 	return stdout, stderr, cleanup
 }
 
+func getPipe(t *testing.T) (*os.File, func()) {
+	file, err := ioutil.TempFile("", "blush_pipe")
+	if err != nil {
+		t.Fatal(err)
+	}
+	name := file.Name()
+	rmFile := func() {
+		if err := os.Remove(name); err != nil {
+			t.Error(err)
+		}
+	}
+	file.Close()
+	rmFile()
+	file, err = os.OpenFile(name, os.O_CREATE|os.O_RDWR, os.ModeCharDevice|os.ModeDevice)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return file, rmFile
+}
+
 func TestMainNoArgs(t *testing.T) {
 	stdout, stderr, cleanup := setup(t, "")
 	defer cleanup()
@@ -88,23 +111,8 @@ func TestPipeInput(t *testing.T) {
 		cleanup()
 		os.Stdin = oldStdin
 	}()
-	file, err := ioutil.TempFile("", "blush_pipe")
-	if err != nil {
-		t.Fatal(err)
-	}
-	name := file.Name()
-	rmFile := func() {
-		if err := os.Remove(name); err != nil {
-			t.Error(err)
-		}
-	}
-	defer rmFile()
-	file.Close()
-	rmFile()
-	file, err = os.OpenFile(name, os.O_CREATE|os.O_RDWR, os.ModeCharDevice|os.ModeDevice)
-	if err != nil {
-		t.Fatal(err)
-	}
+	file, cl := getPipe(t)
+	defer cl()
 	file.WriteString("you can findme here")
 	os.Stdin = file
 	file.Seek(0, 0)
@@ -218,6 +226,31 @@ func TestMainMatchNoCut(t *testing.T) {
 	location := path.Join(pwd, "../blush/testdata")
 
 	stdout, stderr, cleanup := setup(t, fmt.Sprintf("-C -b %s %s", leaveMeHere, location))
+	defer cleanup()
+	cmd.Main()
+
+	if len(stderr.String()) > 0 {
+		t.Errorf("len(stderr.String()) = %d, want 0: `%s`", len(stderr.String()), stderr.String())
+	}
+	if len(stdout.String()) == 0 {
+		t.Errorf("len(stdout.String()) = %d, want > 0", len(stdout.String()))
+	}
+	for _, s := range matches {
+		if !strings.Contains(stdout.String(), s) {
+			t.Errorf("want `%s` in `%s`", s, stdout.String())
+		}
+	}
+}
+
+func TestMainMatchNoCutLong(t *testing.T) {
+	matches := []string{"TOKEN", "ONE", "TWO", "THREE", "FOUR"}
+	pwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	location := path.Join(pwd, "../blush/testdata")
+
+	stdout, stderr, cleanup := setup(t, fmt.Sprintf("--colour -b %s %s", leaveMeHere, location))
 	defer cleanup()
 	cmd.Main()
 

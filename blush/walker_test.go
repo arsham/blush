@@ -44,6 +44,17 @@ func setup(t *testing.T, input []testCase) ([]string, func()) {
 	}
 }
 
+func TestNewWalkerError(t *testing.T) {
+	dirs := []string{"nomansland2987349237"}
+	w, err := blush.NewWalker(dirs, false)
+	if err == nil {
+		t.Error("NewWalker(): err = nil, want error")
+	}
+	if w != nil {
+		t.Errorf("NewWalker(): w = %v, want nil", w)
+	}
+}
+
 func TestNewWalker(t *testing.T) {
 	var (
 		c1 = "VJSNS5IeLCtEB"

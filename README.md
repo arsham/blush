@@ -40,7 +40,6 @@ $ cat FILENAME | blush "some text"
 | Argument | Shortcut |             Notes             |
 +----------+----------+-------------------------------+
 | --colour | -C       | Colour, don't drop anything.  |
-| --rand   | N/A      | Chooses a random colour.      |
 | N/A      | -i       | Case insensitive matching     |
 | N/A      | -R       | Recursive                     |
 +----------+----------+-------------------------------+
@@ -57,7 +56,7 @@ $ blush -b match1 match3 FILENAME
 
 ### Notes
 
-* If no colour is provided, blush will choose a different colour for each regexp.
+* If no colour is provided, blush will choose blue.
 * If you only provide file/path, it will print them out without colouring.
 * If the matcher contains only alphabets and numbers, a non-regular expression is applied to search.
 
@@ -82,6 +81,8 @@ $ blush -b match1 match3 -g match2 FILENAME
 
 ### Colours
 
+You can choose a pre-defined colour, or pass it your own colour with a hash.
+
 ```
 +-----------+----------+
 |  Argument | Shortcut |
@@ -94,6 +95,7 @@ $ blush -b match1 match3 -g match2 FILENAME
 | --yellow  | -yl      |
 | --magenta | -mg      |
 | --cyan    | -cy      |
+| --#11bb22 | --#1b2   |
 +-----------+----------+
 
 ```
@@ -108,6 +110,8 @@ $ blush -b "^age: [0-9]+" FILENAME
 
 ## Roadmap
 
+* [ ] user defined colours.
+* [ ] invert match (-v).
 * [ ] implement all grep arguments.
-* [ ] set up user defined config files.
+* [ ] config files.
 * [ ] internal pager and fuzzy search.

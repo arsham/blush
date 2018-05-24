@@ -7,6 +7,69 @@ import (
 	"github.com/arsham/blush/blush"
 )
 
+func TestNewLocatorColours(t *testing.T) {
+	tcs := []struct {
+		name   string
+		colour string
+		want   blush.Colour
+	}{
+		{"default", "", blush.DefaultColour},
+		{"garbage", "sdsds", blush.DefaultColour},
+		{"blue", "blue", blush.FgBlue},
+		{"blue short", "b", blush.FgBlue},
+		{"red", "red", blush.FgRed},
+		{"red short", "r", blush.FgRed},
+		{"blue", "blue", blush.FgBlue},
+		{"blue short", "b", blush.FgBlue},
+		{"green", "green", blush.FgGreen},
+		{"green short", "g", blush.FgGreen},
+		{"black", "black", blush.FgBlack},
+		{"black short", "bl", blush.FgBlack},
+		{"white", "white", blush.FgWhite},
+		{"white short", "w", blush.FgWhite},
+		{"cyan", "cyan", blush.FgCyan},
+		{"cyan short", "cy", blush.FgCyan},
+		{"magenta", "magenta", blush.FgMagenta},
+		{"magenta short", "mg", blush.FgMagenta},
+		{"yellow", "yellow", blush.FgYellow},
+		{"yellow short", "yl", blush.FgYellow},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			l := blush.NewLocator(tc.colour, "aaa", false)
+			if l.Colour() != tc.want {
+				t.Errorf("%s: l.Colour() = %#v, want %#v", tc.colour, l.Colour(), tc.want)
+			}
+		})
+	}
+}
+
+func TestNewLocatorColourNumbers(t *testing.T) {
+	tcs := []struct {
+		colour string
+		want   blush.Colour
+	}{
+		{"#000", blush.Colour{R: 0, G: 0, B: 0}},
+		{"#666", blush.Colour{R: 102, G: 102, B: 102}},
+		{"#000000", blush.Colour{R: 0, G: 0, B: 0}},
+		{"#666666", blush.Colour{R: 102, G: 102, B: 102}},
+		{"#FFF", blush.Colour{R: 255, G: 255, B: 255}},
+		{"#fff", blush.Colour{R: 255, G: 255, B: 255}},
+		{"#ffffff", blush.Colour{R: 255, G: 255, B: 255}},
+		{"#ababAB", blush.Colour{R: 171, G: 171, B: 171}},
+		{"#hhhhhh", blush.DefaultColour},
+		{"#aaaaaaa", blush.DefaultColour},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.colour, func(t *testing.T) {
+			l := blush.NewLocator(tc.colour, "aaa", false)
+			if l.Colour() != tc.want {
+				t.Errorf("%s: l.Colour() = %#v, want %#v", tc.colour, l.Colour(), tc.want)
+			}
+		})
+	}
+}
+
 func TestNewLocatorExact(t *testing.T) {
 	l := blush.NewLocator("", "aaa", false)
 	if _, ok := l.(blush.Exact); !ok {
@@ -133,7 +196,7 @@ func TestRxFind(t *testing.T) {
 		})
 	}
 
-	rx := blush.NewLocator("-b", "a{3}", false)
+	rx := blush.NewLocator("b", "a{3}", false)
 	want := "this " + blush.Colourise("aaa", blush.FgBlue) + "meeting"
 	got, ok = rx.Find("this aaameeting")
 	if got != want {
@@ -199,8 +262,9 @@ func TestRxInsensitiveFind(t *testing.T) {
 		{"exact no colour", "^AAA$", "", "aaa", "aaa", true},
 		{"exact not found", "^AA$", "", "aaa", "", false},
 		{"some words no colour", `AAA*`, "", "bb aaa bb", "bb aaa bb", true},
-		{"exact blue", "^AAA$", "-b", "aaa", blush.Colourise("aaa", blush.FgBlue), true},
-		{"some words blue", "AAA?", "-b", "bb aaa bb", "bb " + blush.Colourise("aaa", blush.FgBlue) + " bb", true},
+		{"exact blue", "^AAA$", "b", "aaa", blush.Colourise("aaa", blush.FgBlue), true},
+		{"some words blue", "AAA?", "b", "bb aaa bb", "bb " + blush.Colourise("aaa", blush.FgBlue) + " bb", true},
+		{"some words blue long", "AAA?", "blue", "bb aaa bb", "bb " + blush.Colourise("aaa", blush.FgBlue) + " bb", true},
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
@@ -218,7 +282,7 @@ func TestRxInsensitiveFind(t *testing.T) {
 		})
 	}
 
-	rx := blush.NewLocator("-b", "A{3}", true)
+	rx := blush.NewLocator("b", "A{3}", true)
 	want := "this " + blush.Colourise("aaa", blush.FgBlue) + "meeting"
 	got, ok := rx.Find("this aaameeting")
 	if got != want {

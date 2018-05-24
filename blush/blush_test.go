@@ -304,6 +304,35 @@ func TestMultipleMatchInOneLine(t *testing.T) {
 	}
 }
 
+type nopCloser struct {
+	io.Reader
+	closeFunc func() error
+}
+
+func (n nopCloser) Close() error { return n.closeFunc() }
+
+func TestBlushClosesReader(t *testing.T) {
+	var called bool
+	input := bytes.NewBuffer([]byte("DwgQnpvro5bVvrRwBB"))
+	w := nopCloser{
+		Reader: input,
+		closeFunc: func() error {
+			called = true
+			return nil
+		},
+	}
+	l := blush.Blush{
+		Reader: w,
+	}
+	err := l.Close()
+	if err != nil {
+		t.Errorf("err = %v, want nil", err)
+	}
+	if !called {
+		t.Error("didn't close the reader")
+	}
+}
+
 func TestPrintFileName(t *testing.T) {
 	t.Skip("not implemented")
 }

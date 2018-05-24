@@ -2,6 +2,8 @@ package blush
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 )
 
 // Some stock colours.
@@ -44,4 +46,64 @@ func colour(red, green, blue int) int {
 
 func baseColor(value int, factor int) int {
 	return int(6*float64(value)/256) * factor
+}
+
+func colorFromArg(colour string) Colour {
+	if strings.HasPrefix(colour, "#") {
+		return hexColour(colour)
+	}
+	switch colour {
+	case "r", "red":
+		return FgRed
+	case "b", "blue":
+		return FgBlue
+	case "g", "green":
+		return FgGreen
+	case "bl", "black":
+		return FgBlack
+	case "w", "white":
+		return FgWhite
+	case "cy", "cyan":
+		return FgCyan
+	case "mg", "magenta":
+		return FgMagenta
+	case "yl", "yellow":
+		return FgYellow
+	}
+	return DefaultColour
+}
+
+func hexColour(colour string) Colour {
+	var r, g, b int
+	colour = strings.TrimPrefix(colour, "#")
+	switch len(colour) {
+	case 3:
+		c := strings.Split(colour, "")
+		r = getInt(c[0] + c[0])
+		g = getInt(c[1] + c[1])
+		b = getInt(c[2] + c[2])
+	case 6:
+		c := strings.Split(colour, "")
+		r = getInt(c[0] + c[1])
+		g = getInt(c[2] + c[3])
+		b = getInt(c[4] + c[5])
+	default:
+		return DefaultColour
+	}
+	for _, n := range []int{r, g, b} {
+		if n < 0 {
+			return DefaultColour
+		}
+	}
+	return Colour{R: r, G: g, B: b}
+}
+
+// returns a number between 0-255 from a hex code. If the hex is not between 00
+// and ff, it returns -1.
+func getInt(hex string) int {
+	d, err := strconv.ParseInt("0x"+hex, 0, 64)
+	if err != nil || d > 255 || d < 0 {
+		return -1
+	}
+	return int(d)
 }

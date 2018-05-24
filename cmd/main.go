@@ -4,11 +4,11 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
 	"github.com/arsham/blush/blush"
-	"github.com/pkg/errors"
 )
 
 // These variables are provided to support the tests.
@@ -28,7 +28,11 @@ func Main() {
 		FatalErr(err.Error())
 		return
 	}
-
+	defer func() {
+		if err := b.Close(); err != nil {
+			FatalErr(err.Error())
+		}
+	}()
 	if err = b.Write(os.Stdout); err != nil {
 		FatalErr(err.Error())
 		return
@@ -54,7 +58,10 @@ func GetBlush(input []string) (b *blush.Blush, err error) {
 	if remaining, ok = hasArg(remaining, "-C"); ok {
 		b.NoCut = true
 	}
-	b.Locator = getArgs(remaining)
+	if remaining, ok = hasArg(remaining, "--colour"); ok {
+		b.NoCut = true
+	}
+	b.Locator = getLocator(remaining)
 	return
 }
 
@@ -93,28 +100,37 @@ func files(input []string) (remaining []string, p []string, err error) {
 		counter  int
 		ret      []string
 	)
-	sort.Slice(input, func(i, j int) bool {
+	// going backwards from the end.
+	sort.SliceStable(input, func(i, j int) bool {
 		return i > j
 	})
-	for _, t := range input {
+	for i, t := range input {
 		t = strings.Trim(t, " ")
 		if t == "" || inStringSlice(t, p) {
 			continue
 		}
-		if _, err := os.Stat(t); err == nil {
+		if m, _ := filepath.Glob(t); len(m) > 0 {
 			foundOne = true
 			p = append(p, t)
 			counter++
 			continue
-		}
-		if !foundOne {
-			return input, nil, errors.Wrap(ErrFileNotFound, t)
+		} else if foundOne {
+			// there is already a pattern found so we stop here.
+			ret = append(ret, input[i:]...)
+			break
 		}
 		ret = append(ret, t)
 	}
+	if !foundOne {
+		return input, nil, ErrNoFilesFound
+	}
 
-	//We have reversed it. We need to return back in the same order.
-	sort.Slice(ret, func(i, j int) bool {
+	// We have reversed it. We need to return back in the same order.
+	sort.SliceStable(ret, func(i, j int) bool {
+		return i > j
+	})
+	// to keep the original user's preference.
+	sort.SliceStable(p, func(i, j int) bool {
 		return i > j
 	})
 	return ret, p, nil
@@ -129,17 +145,7 @@ func inStringSlice(s string, haystack []string) bool {
 	return false
 }
 
-// hasArg removes the `arg` argument and returns the remaining []string.
-func hasArg(input []string, arg string) ([]string, bool) {
-	for i, a := range input {
-		if a == arg {
-			return append(input[:i], input[i+1:]...), true
-		}
-	}
-	return input, false
-}
-
-func getArgs(input []string) []blush.Locator {
+func getLocator(input []string) []blush.Locator {
 	var (
 		lastColour  string
 		ret         []blush.Locator
@@ -151,11 +157,21 @@ func getArgs(input []string) []blush.Locator {
 	}
 	for _, token := range input {
 		if strings.HasPrefix(token, "-") {
-			lastColour = token
+			lastColour = strings.TrimLeft(token, "-")
 			continue
 		}
 		a := blush.NewLocator(lastColour, token, insensitive)
 		ret = append(ret, a)
 	}
 	return ret
+}
+
+// hasArg removes the `arg` argument and returns the remaining []string.
+func hasArg(input []string, arg string) ([]string, bool) {
+	for i, a := range input {
+		if a == arg {
+			return append(input[:i], input[i+1:]...), true
+		}
+	}
+	return input, false
 }

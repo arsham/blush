@@ -17,21 +17,22 @@ type Locator interface {
 }
 
 // NewLocator returns a `rx` object if the `search` is a valid regexp, otherwise
-// it returns a plain locator. If caseInsensitive is true, the match will be
-// case insensitive. The `colour` argument should be sent like it was received
-// from the command arguments. It can be in short form (-b) or long form
-// (--blue). If it cannot find the colour, it will fallback to DefaultColour.
-func NewLocator(colour, search string, caseInsensitive bool) Locator {
+// it returns a plain locator. If insensitive is true, the match will be case
+// insensitive. The `colour` argument can be in short form (b) or long form
+// (blue). If it cannot find the colour, it will fallback to DefaultColour. The
+// colour also can be in hex format, which should be started with a pound sign
+// (#666).
+func NewLocator(colour, search string, insensitive bool) Locator {
 	c := colorFromArg(colour)
 	if !isRegExp.Match([]byte(search)) {
-		if caseInsensitive {
+		if insensitive {
 			return NewIexact(search, c)
 		}
 		return NewExact(search, c)
 	}
 
 	decore := fmt.Sprintf("(%s)", search)
-	if caseInsensitive {
+	if insensitive {
 		decore = fmt.Sprintf("(?i)%s", decore)
 		if o, err := regexp.Compile(decore); err == nil {
 			return NewRx(o, c)

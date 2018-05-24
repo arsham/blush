@@ -23,13 +23,16 @@ func (b Blush) Write(w io.Writer) error {
 	if b.Reader == nil {
 		return ErrNoInput
 	}
-	if err := b.find(w, b.Reader); err != nil {
-		return err
-	}
+	b.find(w, b.Reader)
 	return nil
 }
 
-func (b Blush) find(w io.Writer, file io.Reader) error {
+// Close closes the reader and returns whatever error it returns.
+func (b Blush) Close() error {
+	return b.Reader.Close()
+}
+
+func (b Blush) find(w io.Writer, file io.Reader) {
 	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)
 	for scanner.Scan() {
@@ -47,27 +50,4 @@ func (b Blush) find(w io.Writer, file io.Reader) error {
 			fmt.Fprintf(w, "%s\n", line)
 		}
 	}
-	return nil
-}
-
-func colorFromArg(arg string) Colour {
-	switch arg {
-	case "-r", "--red":
-		return FgRed
-	case "-b", "--blue":
-		return FgBlue
-	case "-g", "--green":
-		return FgGreen
-	case "-bl", "--black":
-		return FgBlack
-	case "-w", "--white":
-		return FgWhite
-	case "-cy", "--cyan":
-		return FgCyan
-	case "-mg", "--magenta":
-		return FgMagenta
-	case "-yl", "--yellow":
-		return FgYellow
-	}
-	return DefaultColour
 }
