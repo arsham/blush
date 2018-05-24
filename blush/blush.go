@@ -1,30 +1,40 @@
+// Package blush reads from a given io.Reader line by line and looks for
+// patterns.
+//
+// Blush struct has a Reader property which can be Stdin in case of it being
+// shell's pipe, or any type that implements io.ReadCloser. If NoCut is set to
+// true, it will show all lines even if they don't match.
 package blush
 
 import (
 	"bufio"
 	"fmt"
 	"io"
+	"sync"
+	"time"
 )
 
 // Blush has a slice of given regexp, matching paths, and operation
 // configuration. If NoCut is true, the unmatched lines are printed as well.
 type Blush struct {
-	Locator []Locator
+	Finders []Finder
 	Reader  io.ReadCloser
 	NoCut   bool
+	once    sync.Once
+	res     chan results
 }
 
 // WriteTo writes matches to w. It returns an error if the writer is nil or
 // there are not paths defined or there is no files found in the Reader.
-func (b Blush) Write(w io.Writer) error {
+func (b Blush) WriteTo(w io.Writer) (n int64, err error) {
 	if w == nil {
-		return ErrNoWriter
+		return 0, ErrNoWriter
 	}
 	if b.Reader == nil {
-		return ErrNoInput
+		return 0, ErrNoInput
 	}
-	b.find(w, b.Reader)
-	return nil
+	n = b.find(w)
+	return
 }
 
 // Close closes the reader and returns whatever error it returns.
@@ -38,7 +48,8 @@ func (b Blush) find(w io.Writer, file io.Reader) {
 	for scanner.Scan() {
 		var foundStr string
 		line := scanner.Text()
-		for _, a := range b.Locator {
+		n += int64(len(line)) + 1 // new-line of each line
+		for _, a := range b.Finders {
 			if s, ok := a.Find(line); ok {
 				line = s
 				foundStr = line
@@ -50,4 +61,5 @@ func (b Blush) find(w io.Writer, file io.Reader) {
 			fmt.Fprintf(w, "%s\n", line)
 		}
 	}
+	return
 }

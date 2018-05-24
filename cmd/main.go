@@ -1,3 +1,20 @@
+// Package cmd bootstraps the application.
+//
+// Main() reads the provided arguments from the command line and creates a
+// blush.Blush instance. If there is any error, it will terminate the
+// application with error code `1`, otherwise it calls the Write() method of
+// Blush and exits normally.
+//
+// GetBlush() returns an error if no arguments are provided or it can't find all
+// the passed files. Files should be last arguments, otherwise they are counted
+// as matching strings. If there is no file passed, the input should come in
+// from Stdin as a pipe. We are not using the usual flag package because it
+// cannot handle variables in the args and continues grouping of passed
+// arguments.
+//
+// hasArg(input []string, arg string) function looks for `arg` in `input` and if
+// it finds it, it removes it and returns the remaining slice with a boolean to
+// tell it was found.
 package cmd
 
 import (
@@ -11,17 +28,13 @@ import (
 	"github.com/arsham/blush/blush"
 )
 
-// These variables are provided to support the tests.
-var (
-	FatalErr = func(s string) {
-		log.Fatal(s)
-	}
-)
+// FatalErr variables is provided to support the tests.
+var FatalErr = func(s string) {
+	log.Fatal(s)
+}
 
 // Main reads the provided arguments from the command line and creates a
-// blush.Blush instance. If there is any error, it will terminate the
-// application with error code `1`, otherwise it calls the Write() method of
-// Blush and exits with `0`.
+// blush.Blush instance.
 func Main() {
 	b, err := GetBlush(os.Args)
 	if err != nil {
@@ -33,17 +46,15 @@ func Main() {
 			FatalErr(err.Error())
 		}
 	}()
-	if err = b.Write(os.Stdout); err != nil {
+	if _, err = b.WriteTo(os.Stdout); err != nil {
 		FatalErr(err.Error())
 		return
 	}
+	// io.Copy(b, os.Stdout)
 }
 
 // GetBlush returns an error if no arguments are provided or it can't find all
-// the passed files. Files should be last arguments, otherwise they are counted
-// as matching strings. If there is no file passed, the input should come in
-// from Stdin as a pipe. We are not using the usual flag package because it
-// cannot handle variables in the args.
+// the passed files in the input.
 func GetBlush(input []string) (b *blush.Blush, err error) {
 	var ok bool
 	if len(input) == 1 {
@@ -61,7 +72,7 @@ func GetBlush(input []string) (b *blush.Blush, err error) {
 	if remaining, ok = hasArg(remaining, "--colour"); ok {
 		b.NoCut = true
 	}
-	b.Locator = getLocator(remaining)
+	b.Finders = getLocator(remaining)
 	return
 }
 
@@ -104,22 +115,37 @@ func files(input []string) (remaining []string, p []string, err error) {
 	sort.SliceStable(input, func(i, j int) bool {
 		return i > j
 	})
+
+	// I don't like this label, but if we replace the `switch` statement with a
+	// regular if-then-else clause, it gets ugly and doesn't show its
+	// intentions. Order of cases in this switch matters.
+LOOP:
 	for i, t := range input {
 		t = strings.Trim(t, " ")
 		if t == "" || inStringSlice(t, p) {
 			continue
 		}
-		if m, _ := filepath.Glob(t); len(m) > 0 {
+
+		m, err := filepath.Glob(t)
+		if err != nil {
+			return nil, nil, err
+		}
+		switch {
+		case len(input) > i+1 && strings.HasPrefix(input[i+1], "-"):
+			// In this case, the previous input was a flag argument, therefore
+			// it might have been a colouring command. That is why we are
+			// ignoring this item.
+			ret = append(ret, input[i:]...)
+			break LOOP
+		case len(m) > 0:
 			foundOne = true
 			p = append(p, t)
 			counter++
-			continue
-		} else if foundOne {
+		case foundOne:
 			// there is already a pattern found so we stop here.
 			ret = append(ret, input[i:]...)
-			break
+			break LOOP
 		}
-		ret = append(ret, t)
 	}
 	if !foundOne {
 		return input, nil, ErrNoFilesFound
@@ -145,10 +171,10 @@ func inStringSlice(s string, haystack []string) bool {
 	return false
 }
 
-func getLocator(input []string) []blush.Locator {
+func getLocator(input []string) []blush.Finder {
 	var (
 		lastColour  string
-		ret         []blush.Locator
+		ret         []blush.Finder
 		insensitive bool
 		ok          bool
 	)

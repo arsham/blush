@@ -193,6 +193,9 @@ func TestRxFind(t *testing.T) {
 			if ok != tc.wantOk {
 				t.Errorf("ok = %t, want %t", ok, tc.wantOk)
 			}
+			if l.Colour() != tc.colour {
+				t.Errorf("l.Colour() = %v, want %v", l.Colour(), tc.colour)
+			}
 		})
 	}
 
@@ -245,9 +248,11 @@ func TestIexact(t *testing.T) {
 			if ok != tc.wantOk {
 				t.Errorf("ok = %t, want %t", ok, tc.wantOk)
 			}
+			if l.Colour() != tc.colour {
+				t.Errorf("l.Colour() = %v, want %v", l.Colour(), tc.colour)
+			}
 		})
 	}
-
 }
 
 func TestRxInsensitiveFind(t *testing.T) {

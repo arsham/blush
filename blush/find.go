@@ -8,10 +8,10 @@ import (
 
 var isRegExp = regexp.MustCompile(`[\^\$\.\{\}\[\]\*\?]`)
 
-// Locator is a strategy to find texts based on a plain text or regexp logic. If
+// Finder is a strategy to find texts based on a plain text or regexp logic. If
 // Find finds the string, it will decorate it with the given Colour. If the
 // colour is zero, it doesn't decorate and works as a regular grep.
-type Locator interface {
+type Finder interface {
 	Find(string) (string, bool)
 	Colour() Colour
 }
@@ -22,7 +22,7 @@ type Locator interface {
 // (blue). If it cannot find the colour, it will fallback to DefaultColour. The
 // colour also can be in hex format, which should be started with a pound sign
 // (#666).
-func NewLocator(colour, search string, insensitive bool) Locator {
+func NewLocator(colour, search string, insensitive bool) Finder {
 	c := colorFromArg(colour)
 	if !isRegExp.Match([]byte(search)) {
 		if insensitive {
@@ -80,6 +80,10 @@ func (e Exact) Colour() Colour {
 	return e.colour
 }
 
+func (e Exact) String() string {
+	return e.colourise(e.s, e.colour)
+}
+
 // Iexact is like Exact but case insensitive.
 type Iexact struct {
 	s      string
@@ -115,6 +119,10 @@ func (i Iexact) colourise(input string, c Colour) string {
 // Colour returns the Colour property.
 func (i Iexact) Colour() Colour {
 	return i.colour
+}
+
+func (i Iexact) String() string {
+	return i.colourise(i.s, i.colour)
 }
 
 // Rx is the regexp implementation of the Locator.

@@ -107,9 +107,10 @@ func TestFiles(t *testing.T) {
 		{"not found", []string{"nowhere"}, []string{}, []string{}, true},
 		{"only a file", []string{f1.Name()}, []string{}, []string{f1.Name()}, false},
 		{"two files", []string{f1.Name(), f2.Name()}, []string{}, []string{f1.Name(), f2.Name()}, false},
-		{"arg between two files", []string{f1.Name(), "-a", f2.Name()}, []string{f1.Name(), "-a"}, []string{f2.Name()}, false},
+		{"arg between two files", []string{f1.Name(), "-a", f2.Name()}, []string{f1.Name(), "-a", f2.Name()}, []string{}, true},
 		{"prefix file", []string{"a", f1.Name()}, []string{"a"}, []string{f1.Name()}, false},
-		{"prefix arg file", []string{"-r", f1.Name()}, []string{"-r"}, []string{f1.Name()}, false},
+		{"prefix arg file", []string{"-r", f1.Name()}, []string{"-r", f1.Name()}, []string{}, true},
+		{"file matches but is an argument", []string{"-r", f1.Name(), f2.Name()}, []string{"-r", f1.Name()}, []string{f2.Name()}, false},
 		{
 			"star dir",
 			[]string{path.Join(dir, "*")},

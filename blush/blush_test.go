@@ -13,13 +13,7 @@ import (
 	"github.com/arsham/blush/blush"
 )
 
-// In the testdata folder, there are three files. In each file there are 1 ONE,
-// 2 TWO, 3 THREE and 4 FOURs. There is a line containing `LEAVEMEHERE` which
-// does not collide with any of these numbers.
-
-var leaveMeHere = "LEAVEMEHERE"
-
-func TestWriteErrors(t *testing.T) {
+func TestWriteToErrors(t *testing.T) {
 	w := new(bytes.Buffer)
 	r := ioutil.NopCloser(new(bytes.Buffer))
 	tcs := []struct {
@@ -34,10 +28,13 @@ func TestWriteErrors(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			err := tc.b.Write(tc.writer)
+			n, err := tc.b.WriteTo(tc.writer)
 			if err == nil {
 				t.Error("New(): err = nil, want error")
 				return
+			}
+			if n != 0 {
+				t.Errorf("l.Write(): n = %d, want 0", n)
 			}
 			if !strings.Contains(err.Error(), tc.errTxt) {
 				t.Errorf("want `%s` in `%s`", tc.errTxt, err.Error())
@@ -46,7 +43,7 @@ func TestWriteErrors(t *testing.T) {
 	}
 }
 
-func TestWriteNoMatch(t *testing.T) {
+func TestWriteToNoMatch(t *testing.T) {
 	pwd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
@@ -56,22 +53,29 @@ func TestWriteNoMatch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	total, err := walkerLen(w)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	l := blush.Blush{
 		Reader:  w,
-		Locator: []blush.Locator{blush.NewExact("SHOULDNOTFINDTHISONE", blush.NoColour)},
+		Finders: []blush.Finder{blush.NewExact("SHOULDNOTFINDTHISONE", blush.NoColour)},
 	}
 	buf := new(bytes.Buffer)
-	err = l.Write(buf)
-	if buf.Len() > 0 {
-		t.Errorf("buf.Len() = %d, want 0", buf.Len())
-	}
+	n, err := l.WriteTo(buf)
 	if err != nil {
 		t.Errorf("err = %v, want %v", err, nil)
 	}
+	if n != total {
+		t.Errorf("l.Write(): n = %d, want %d", n, total)
+	}
+	if buf.Len() > 0 {
+		t.Errorf("buf.Len() = %d, want 0", buf.Len())
+	}
 }
 
-func TestWriteMatchNoColourPlain(t *testing.T) {
+func TestWriteToMatchNoColourPlain(t *testing.T) {
 	match := "TOKEN"
 	pwd, err := os.Getwd()
 	if err != nil {
@@ -82,18 +86,25 @@ func TestWriteMatchNoColourPlain(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	total, err := walkerLen(w)
+	if err != nil {
+		t.Fatal(err)
+	}
 	l := blush.Blush{
 		Reader:  w,
-		Locator: []blush.Locator{blush.NewExact(match, blush.NoColour)},
+		Finders: []blush.Finder{blush.NewExact(match, blush.NoColour)},
 	}
 
 	buf := new(bytes.Buffer)
-	err = l.Write(buf)
-	if buf.Len() == 0 {
-		t.Errorf("buf.Len() = %d, want > 0", buf.Len())
-	}
+	n, err := l.WriteTo(buf)
 	if err != nil {
 		t.Errorf("err = %v, want %v", err, nil)
+	}
+	if n != total {
+		t.Errorf("l.Write(): n = %d, want %d", n, total)
+	}
+	if buf.Len() == 0 {
+		t.Errorf("buf.Len() = %d, want > 0", buf.Len())
 	}
 	if !strings.Contains(buf.String(), match) {
 		t.Errorf("want `%s` in `%s`", match, buf.String())
@@ -106,7 +117,7 @@ func TestWriteMatchNoColourPlain(t *testing.T) {
 	}
 }
 
-func TestWriteMatchColour(t *testing.T) {
+func TestWriteToMatchColour(t *testing.T) {
 	match := blush.Colourise("TOKEN", blush.FgBlue)
 	pwd, err := os.Getwd()
 	if err != nil {
@@ -117,18 +128,25 @@ func TestWriteMatchColour(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	total, err := walkerLen(w)
+	if err != nil {
+		t.Fatal(err)
+	}
 	l := blush.Blush{
 		Reader:  w,
-		Locator: []blush.Locator{blush.NewExact("TOKEN", blush.FgBlue)},
+		Finders: []blush.Finder{blush.NewExact("TOKEN", blush.FgBlue)},
 	}
 
 	buf := new(bytes.Buffer)
-	err = l.Write(buf)
-	if buf.Len() == 0 {
-		t.Errorf("buf.Len() = %d, want > 0", buf.Len())
-	}
+	n, err := l.WriteTo(buf)
 	if err != nil {
 		t.Errorf("err = %v, want %v", err, nil)
+	}
+	if n != total {
+		t.Errorf("l.Write(): n = %d, want %d", n, total)
+	}
+	if buf.Len() == 0 {
+		t.Errorf("buf.Len() = %d, want > 0", buf.Len())
 	}
 	if !strings.Contains(buf.String(), match) {
 		t.Errorf("want `%s` in `%s`", match, buf.String())
@@ -138,7 +156,7 @@ func TestWriteMatchColour(t *testing.T) {
 	}
 }
 
-func TestWriteMatchCountColour(t *testing.T) {
+func TestWriteToMatchCountColour(t *testing.T) {
 	pwd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
@@ -166,16 +184,24 @@ func TestWriteMatchCountColour(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			total, err := walkerLen(w)
+			if err != nil {
+				t.Fatal(err)
+			}
+
 			match := blush.Colourise(tc.name, blush.FgRed)
 			l := blush.Blush{
 				Reader:  w,
-				Locator: []blush.Locator{blush.NewExact(tc.name, blush.FgRed)},
+				Finders: []blush.Finder{blush.NewExact(tc.name, blush.FgRed)},
 			}
 
 			buf := new(bytes.Buffer)
-			err = l.Write(buf)
+			n, err := l.WriteTo(buf)
 			if err != nil {
-				t.Errorf("err = %v, want %v", err, nil)
+				t.Errorf("l.Write(): err = %v, want %v", err, nil)
+			}
+			if n != total {
+				t.Errorf("l.Write(): n = %d, want %d", n, total)
 			}
 			count := strings.Count(buf.String(), match)
 			if count != tc.count {
@@ -188,7 +214,7 @@ func TestWriteMatchCountColour(t *testing.T) {
 	}
 }
 
-func TestWriteMultiColour(t *testing.T) {
+func TestWriteToMultiColour(t *testing.T) {
 	two := blush.Colourise("TWO", blush.FgMagenta)
 	three := blush.Colourise("THREE", blush.FgRed)
 	pwd, err := os.Getwd()
@@ -200,21 +226,28 @@ func TestWriteMultiColour(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	total, err := walkerLen(w)
+	if err != nil {
+		t.Fatal(err)
+	}
 	l := blush.Blush{
 		Reader: w,
-		Locator: []blush.Locator{
+		Finders: []blush.Finder{
 			blush.NewExact("TWO", blush.FgMagenta),
 			blush.NewExact("THREE", blush.FgRed),
 		},
 	}
 
 	buf := new(bytes.Buffer)
-	err = l.Write(buf)
-	if buf.Len() == 0 {
-		t.Errorf("buf.Len() = %d, want > 0", buf.Len())
-	}
+	n, err := l.WriteTo(buf)
 	if err != nil {
 		t.Errorf("err = %v, want %v", err, nil)
+	}
+	if n != total {
+		t.Errorf("l.Write(): n = %d, want %d", n, total)
+	}
+	if buf.Len() == 0 {
+		t.Errorf("buf.Len() = %d, want > 0", buf.Len())
 	}
 	count := strings.Count(buf.String(), two)
 	if count != 2*3 {
@@ -229,7 +262,7 @@ func TestWriteMultiColour(t *testing.T) {
 	}
 }
 
-func TestWriteMultiColourColourMode(t *testing.T) {
+func TestWriteToMultiColourColourMode(t *testing.T) {
 	two := blush.Colourise("TWO", blush.FgMagenta)
 	three := blush.Colourise("THREE", blush.FgRed)
 	pwd, err := os.Getwd()
@@ -241,22 +274,29 @@ func TestWriteMultiColourColourMode(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	total, err := walkerLen(w)
+	if err != nil {
+		t.Fatal(err)
+	}
 	l := blush.Blush{
 		Reader: w,
 		NoCut:  true,
-		Locator: []blush.Locator{
+		Finders: []blush.Finder{
 			blush.NewExact("TWO", blush.FgMagenta),
 			blush.NewExact("THREE", blush.FgRed),
 		},
 	}
 
 	buf := new(bytes.Buffer)
-	err = l.Write(buf)
-	if buf.Len() == 0 {
-		t.Errorf("buf.Len() = %d, want > 0", buf.Len())
-	}
+	n, err := l.WriteTo(buf)
 	if err != nil {
 		t.Errorf("err = %v, want %v", err, nil)
+	}
+	if n != total {
+		t.Errorf("l.Write(): n = %d, want %d", n, total)
+	}
+	if buf.Len() == 0 {
+		t.Errorf("buf.Len() = %d, want > 0", buf.Len())
 	}
 	count := strings.Count(buf.String(), two)
 	if count != 2*3 {
@@ -272,7 +312,7 @@ func TestWriteMultiColourColourMode(t *testing.T) {
 	}
 }
 
-func TestMultipleMatchInOneLine(t *testing.T) {
+func TestWriteToMultipleMatchInOneLine(t *testing.T) {
 	line1 := "this is an example\n"
 	line2 := "someone should find this line\n"
 	input1 := bytes.NewBuffer([]byte(line1))
@@ -287,13 +327,13 @@ func TestMultipleMatchInOneLine(t *testing.T) {
 
 	l := blush.Blush{
 		Reader: w,
-		Locator: []blush.Locator{
+		Finders: []blush.Finder{
 			blush.NewExact("this", blush.FgMagenta),
 			blush.NewExact("should", blush.FgRed),
 		},
 	}
 
-	l.Write(out)
+	l.WriteTo(out)
 	lines := strings.Split(out.String(), "\n")
 	example := lines[1]
 	if strings.Contains(example, "is an example") {
@@ -303,13 +343,6 @@ func TestMultipleMatchInOneLine(t *testing.T) {
 		t.Errorf("example = %s, want %s", example, match)
 	}
 }
-
-type nopCloser struct {
-	io.Reader
-	closeFunc func() error
-}
-
-func (n nopCloser) Close() error { return n.closeFunc() }
 
 func TestBlushClosesReader(t *testing.T) {
 	var called bool
