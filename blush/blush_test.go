@@ -2,6 +2,7 @@ package blush_test
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -57,10 +58,8 @@ func TestWriteNoMatch(t *testing.T) {
 	}
 
 	l := blush.Blush{
-		Reader: w,
-		Locator: []blush.ColourLocator{
-			blush.ColourLocator{Locator: blush.Exact("SHOULDNOTFINDTHISONE")},
-		},
+		Reader:  w,
+		Locator: []blush.Locator{blush.NewExact("SHOULDNOTFINDTHISONE", blush.NoColour)},
 	}
 	buf := new(bytes.Buffer)
 	err = l.Write(buf)
@@ -84,13 +83,8 @@ func TestWriteMatchNoColourPlain(t *testing.T) {
 		t.Fatal(err)
 	}
 	l := blush.Blush{
-		Reader: w,
-		Locator: []blush.ColourLocator{
-			blush.ColourLocator{
-				Colour:  blush.NoColour,
-				Locator: blush.Exact(match),
-			},
-		},
+		Reader:  w,
+		Locator: []blush.Locator{blush.NewExact(match, blush.NoColour)},
 	}
 
 	buf := new(bytes.Buffer)
@@ -124,13 +118,8 @@ func TestWriteMatchColour(t *testing.T) {
 		t.Fatal(err)
 	}
 	l := blush.Blush{
-		Reader: w,
-		Locator: []blush.ColourLocator{
-			blush.ColourLocator{
-				Colour:  blush.FgBlue,
-				Locator: blush.Exact("TOKEN"),
-			},
-		},
+		Reader:  w,
+		Locator: []blush.Locator{blush.NewExact("TOKEN", blush.FgBlue)},
 	}
 
 	buf := new(bytes.Buffer)
@@ -179,13 +168,8 @@ func TestWriteMatchCountColour(t *testing.T) {
 			}
 			match := blush.Colourise(tc.name, blush.FgRed)
 			l := blush.Blush{
-				Reader: w,
-				Locator: []blush.ColourLocator{
-					blush.ColourLocator{
-						Colour:  blush.FgRed,
-						Locator: blush.Exact(tc.name),
-					},
-				},
+				Reader:  w,
+				Locator: []blush.Locator{blush.NewExact(tc.name, blush.FgRed)},
 			}
 
 			buf := new(bytes.Buffer)
@@ -218,15 +202,9 @@ func TestWriteMultiColour(t *testing.T) {
 	}
 	l := blush.Blush{
 		Reader: w,
-		Locator: []blush.ColourLocator{
-			blush.ColourLocator{
-				Colour:  blush.FgMagenta,
-				Locator: blush.Exact("TWO"),
-			},
-			blush.ColourLocator{
-				Colour:  blush.FgRed,
-				Locator: blush.Exact("THREE"),
-			},
+		Locator: []blush.Locator{
+			blush.NewExact("TWO", blush.FgMagenta),
+			blush.NewExact("THREE", blush.FgRed),
 		},
 	}
 
@@ -266,15 +244,9 @@ func TestWriteMultiColourColourMode(t *testing.T) {
 	l := blush.Blush{
 		Reader: w,
 		NoCut:  true,
-		Locator: []blush.ColourLocator{
-			blush.ColourLocator{
-				Colour:  blush.FgMagenta,
-				Locator: blush.Exact("TWO"),
-			},
-			blush.ColourLocator{
-				Colour:  blush.FgRed,
-				Locator: blush.Exact("THREE"),
-			},
+		Locator: []blush.Locator{
+			blush.NewExact("TWO", blush.FgMagenta),
+			blush.NewExact("THREE", blush.FgRed),
 		},
 	}
 
@@ -300,6 +272,38 @@ func TestWriteMultiColourColourMode(t *testing.T) {
 	}
 }
 
-func TestPrintFileName(t *testing.T) {
+func TestMultipleMatchInOneLine(t *testing.T) {
+	line1 := "this is an example\n"
+	line2 := "someone should find this line\n"
+	input1 := bytes.NewBuffer([]byte(line1))
+	input2 := bytes.NewBuffer([]byte(line2))
+	w := ioutil.NopCloser(io.MultiReader(input1, input2))
+	match := fmt.Sprintf(
+		"someone %s find %s line",
+		blush.Colourise("should", blush.FgRed),
+		blush.Colourise("this", blush.FgMagenta),
+	)
+	out := new(bytes.Buffer)
 
+	l := blush.Blush{
+		Reader: w,
+		Locator: []blush.Locator{
+			blush.NewExact("this", blush.FgMagenta),
+			blush.NewExact("should", blush.FgRed),
+		},
+	}
+
+	l.Write(out)
+	lines := strings.Split(out.String(), "\n")
+	example := lines[1]
+	if strings.Contains(example, "is an example") {
+		example = lines[0]
+	}
+	if example != match {
+		t.Errorf("example = %s, want %s", example, match)
+	}
+}
+
+func TestPrintFileName(t *testing.T) {
+	t.Skip("not implemented")
 }

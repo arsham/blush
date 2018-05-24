@@ -42,7 +42,6 @@ func Main() {
 // cannot handle variables in the args.
 func GetBlush(input []string) (b *blush.Blush, err error) {
 	var ok bool
-	b = &blush.Blush{}
 	if len(input) == 1 {
 		return nil, ErrNoInput
 	}
@@ -50,6 +49,7 @@ func GetBlush(input []string) (b *blush.Blush, err error) {
 	if err != nil {
 		return nil, err
 	}
+	b = &blush.Blush{}
 	b.Reader = r
 	if remaining, ok = hasArg(remaining, "-C"); ok {
 		b.NoCut = true
@@ -139,10 +139,10 @@ func hasArg(input []string, arg string) ([]string, bool) {
 	return input, false
 }
 
-func getArgs(input []string) []blush.ColourLocator {
+func getArgs(input []string) []blush.Locator {
 	var (
-		lastColour  = blush.DefaultColour
-		ret         []blush.ColourLocator
+		lastColour  string
+		ret         []blush.Locator
 		insensitive bool
 		ok          bool
 	)
@@ -151,36 +151,11 @@ func getArgs(input []string) []blush.ColourLocator {
 	}
 	for _, token := range input {
 		if strings.HasPrefix(token, "-") {
-			lastColour = colorFromArg(token)
+			lastColour = token
 			continue
 		}
-		a := blush.ColourLocator{
-			Colour:  lastColour,
-			Locator: blush.NewLocator(token, insensitive),
-		}
+		a := blush.NewLocator(lastColour, token, insensitive)
 		ret = append(ret, a)
 	}
 	return ret
-}
-
-func colorFromArg(arg string) blush.Colour {
-	switch arg {
-	case "-r", "--red":
-		return blush.FgRed
-	case "-b", "--blue":
-		return blush.FgBlue
-	case "-g", "--green":
-		return blush.FgGreen
-	case "-bl", "--black":
-		return blush.FgBlack
-	case "-w", "--white":
-		return blush.FgWhite
-	case "-cy", "--cyan":
-		return blush.FgCyan
-	case "-mg", "--magenta":
-		return blush.FgMagenta
-	case "-yl", "--yellow":
-		return blush.FgYellow
-	}
-	return blush.DefaultColour
 }

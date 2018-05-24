@@ -8,22 +8,22 @@ import (
 )
 
 func TestNewLocatorExact(t *testing.T) {
-	l := blush.NewLocator("aaa", false)
+	l := blush.NewLocator("", "aaa", false)
 	if _, ok := l.(blush.Exact); !ok {
 		t.Errorf("l = %T, want *blush.Exact", l)
 	}
-	l = blush.NewLocator("*aaa", false)
+	l = blush.NewLocator("", "*aaa", false)
 	if _, ok := l.(blush.Exact); !ok {
 		t.Errorf("l = %T, want *blush.Exact", l)
 	}
 }
 
 func TestNewLocatorIexact(t *testing.T) {
-	l := blush.NewLocator("aaa", true)
+	l := blush.NewLocator("", "aaa", true)
 	if _, ok := l.(blush.Iexact); !ok {
 		t.Errorf("l = %T, want *blush.Iexact", l)
 	}
-	l = blush.NewLocator("*aaa", true)
+	l = blush.NewLocator("", "*aaa", true)
 	if _, ok := l.(blush.Iexact); !ok {
 		t.Errorf("l = %T, want *blush.Iexact", l)
 	}
@@ -45,11 +45,11 @@ func TestNewLocatorRx(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			l := blush.NewLocator(tc.input, false)
+			l := blush.NewLocator("", tc.input, false)
 			if _, ok := l.(blush.Rx); !ok {
 				t.Errorf("l = %T, want *blush.Rx", l)
 			}
-			l = blush.NewLocator(tc.input, false)
+			l = blush.NewLocator("", tc.input, false)
 			if _, ok := l.(blush.Rx); !ok {
 				t.Errorf("l = %T, want *blush.Rx", l)
 			}
@@ -58,8 +58,8 @@ func TestNewLocatorRx(t *testing.T) {
 }
 
 func TestExactFind(t *testing.T) {
-	l := blush.Exact("nooooo")
-	got, ok := l.Find("yessss", blush.NoColour)
+	l := blush.NewExact("nooooo", blush.NoColour)
+	got, ok := l.Find("yessss")
 	if got != "" {
 		t.Errorf("got = %s, want `%s`", got, "")
 	}
@@ -83,8 +83,8 @@ func TestExactFind(t *testing.T) {
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			l := blush.Exact(tc.search)
-			got, ok := l.Find(tc.input, tc.colour)
+			l := blush.NewExact(tc.search, tc.colour)
+			got, ok := l.Find(tc.input)
 			if got != tc.want {
 				t.Errorf("got = `%s`, want `%s`", got, tc.want)
 			}
@@ -96,8 +96,8 @@ func TestExactFind(t *testing.T) {
 }
 
 func TestRxFind(t *testing.T) {
-	l := blush.Rx{Regexp: regexp.MustCompile("nooooo")}
-	got, ok := l.Find("yessss", blush.NoColour)
+	l := blush.NewRx(regexp.MustCompile("nooooo"), blush.NoColour)
+	got, ok := l.Find("yessss")
 	if got != "" {
 		t.Errorf("got = %s, want `%s`", got, "")
 	}
@@ -122,8 +122,8 @@ func TestRxFind(t *testing.T) {
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			l := blush.Rx{Regexp: regexp.MustCompile(tc.search)}
-			got, ok := l.Find(tc.input, tc.colour)
+			l := blush.NewRx(regexp.MustCompile(tc.search), tc.colour)
+			got, ok := l.Find(tc.input)
 			if got != tc.want {
 				t.Errorf("got = `%s`, want `%s`", got, tc.want)
 			}
@@ -133,9 +133,9 @@ func TestRxFind(t *testing.T) {
 		})
 	}
 
-	rx := blush.NewLocator("a{3}", false)
+	rx := blush.NewLocator("-b", "a{3}", false)
 	want := "this " + blush.Colourise("aaa", blush.FgBlue) + "meeting"
-	got, ok = rx.Find("this aaameeting", blush.FgBlue)
+	got, ok = rx.Find("this aaameeting")
 	if got != want {
 		t.Errorf("got = `%s`, want `%s`", got, want)
 	}
@@ -145,8 +145,8 @@ func TestRxFind(t *testing.T) {
 }
 
 func TestIexact(t *testing.T) {
-	l := blush.Iexact("nooooo")
-	got, ok := l.Find("yessss", blush.NoColour)
+	l := blush.NewIexact("nooooo", blush.NoColour)
+	got, ok := l.Find("yessss")
 	if got != "" {
 		t.Errorf("got = %s, want `%s`", got, "")
 	}
@@ -174,8 +174,8 @@ func TestIexact(t *testing.T) {
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			l := blush.Iexact(tc.search)
-			got, ok := l.Find(tc.input, tc.colour)
+			l := blush.NewIexact(tc.search, tc.colour)
+			got, ok := l.Find(tc.input)
 			if got != tc.want {
 				t.Errorf("got = `%s`, want `%s`", got, tc.want)
 			}
@@ -191,24 +191,24 @@ func TestRxInsensitiveFind(t *testing.T) {
 	tcs := []struct {
 		name   string
 		search string
-		colour blush.Colour
+		colour string
 		input  string
 		want   string
 		wantOk bool
 	}{
-		{"exact no colour", "^AAA$", blush.NoColour, "aaa", "aaa", true},
-		{"exact not found", "^AA$", blush.NoColour, "aaa", "", false},
-		{"some words no colour", `AAA*`, blush.NoColour, "bb aaa bb", "bb aaa bb", true},
-		{"exact blue", "^AAA$", blush.FgBlue, "aaa", blush.Colourise("aaa", blush.FgBlue), true},
-		{"some words blue", "AAA?", blush.FgBlue, "bb aaa bb", "bb " + blush.Colourise("aaa", blush.FgBlue) + " bb", true},
+		{"exact no colour", "^AAA$", "", "aaa", "aaa", true},
+		{"exact not found", "^AA$", "", "aaa", "", false},
+		{"some words no colour", `AAA*`, "", "bb aaa bb", "bb aaa bb", true},
+		{"exact blue", "^AAA$", "-b", "aaa", blush.Colourise("aaa", blush.FgBlue), true},
+		{"some words blue", "AAA?", "-b", "bb aaa bb", "bb " + blush.Colourise("aaa", blush.FgBlue) + " bb", true},
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			l := blush.NewLocator(tc.search, true)
+			l := blush.NewLocator(tc.colour, tc.search, true)
 			if _, ok := l.(blush.Rx); !ok {
 				t.Fatalf("l = %T, want blush.Rx", l)
 			}
-			got, ok := l.Find(tc.input, tc.colour)
+			got, ok := l.Find(tc.input)
 			if got != tc.want {
 				t.Errorf("got = `%s`, want `%s`", got, tc.want)
 			}
@@ -218,9 +218,9 @@ func TestRxInsensitiveFind(t *testing.T) {
 		})
 	}
 
-	rx := blush.NewLocator("A{3}", true)
+	rx := blush.NewLocator("-b", "A{3}", true)
 	want := "this " + blush.Colourise("aaa", blush.FgBlue) + "meeting"
-	got, ok := rx.Find("this aaameeting", blush.FgBlue)
+	got, ok := rx.Find("this aaameeting")
 	if got != want {
 		t.Errorf("got = `%s`, want `%s`", got, want)
 	}

@@ -9,15 +9,9 @@ import (
 // Blush has a slice of given regexp, matching paths, and operation
 // configuration. If NoCut is true, the unmatched lines are printed as well.
 type Blush struct {
-	Locator []ColourLocator
+	Locator []Locator
 	Reader  io.ReadCloser
 	NoCut   bool
-}
-
-// ColourLocator contains a pair of colour name and corresponding matcher.
-type ColourLocator struct {
-	Locator
-	Colour Colour
 }
 
 // WriteTo writes matches to w. It returns an error if the writer is nil or
@@ -39,18 +33,41 @@ func (b Blush) find(w io.Writer, file io.Reader) error {
 	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)
 	for scanner.Scan() {
+		var foundStr string
 		line := scanner.Text()
-		lineWritten := false
 		for _, a := range b.Locator {
-			s, ok := a.Find(line, a.Colour)
-			if ok {
-				fmt.Fprintf(w, "%s\n", s)
-				lineWritten = true
+			if s, ok := a.Find(line); ok {
+				line = s
+				foundStr = line
 			}
 		}
-		if !lineWritten && b.NoCut {
+		if foundStr != "" {
+			fmt.Fprintf(w, "%s\n", foundStr)
+		} else if b.NoCut {
 			fmt.Fprintf(w, "%s\n", line)
 		}
 	}
 	return nil
+}
+
+func colorFromArg(arg string) Colour {
+	switch arg {
+	case "-r", "--red":
+		return FgRed
+	case "-b", "--blue":
+		return FgBlue
+	case "-g", "--green":
+		return FgGreen
+	case "-bl", "--black":
+		return FgBlack
+	case "-w", "--white":
+		return FgWhite
+	case "-cy", "--cyan":
+		return FgCyan
+	case "-mg", "--magenta":
+		return FgMagenta
+	case "-yl", "--yellow":
+		return FgYellow
+	}
+	return DefaultColour
 }

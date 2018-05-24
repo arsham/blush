@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -245,66 +246,66 @@ func TestNoFiles(t *testing.T) {
 }
 
 func TestColourArgs(t *testing.T) {
-	aaa := blush.Exact("aaa")
-	bbb := blush.Exact("bbb")
+	aaa := "aaa"
+	bbb := "bbb"
 	tcs := []struct {
 		name  string
 		input []string
-		want  []blush.ColourLocator
+		want  []blush.Locator
 	}{
-		{"empty", []string{"/"}, []blush.ColourLocator{}},
-		{"1-no colour", []string{"aaa", "/"}, []blush.ColourLocator{
-			blush.ColourLocator{Colour: blush.DefaultColour, Locator: aaa},
+		{"empty", []string{"/"}, []blush.Locator{}},
+		{"1-no colour", []string{"aaa", "/"}, []blush.Locator{
+			blush.NewExact(aaa, blush.DefaultColour),
 		}},
-		{"1-colour", []string{"-b", "aaa", "/"}, []blush.ColourLocator{
-			blush.ColourLocator{Colour: blush.FgBlue, Locator: aaa},
+		{"1-colour", []string{"-b", "aaa", "/"}, []blush.Locator{
+			blush.NewExact(aaa, blush.FgBlue),
 		}},
-		{"1-colour long", []string{"--blue", "aaa", "/"}, []blush.ColourLocator{
-			blush.ColourLocator{Colour: blush.FgBlue, Locator: aaa},
+		{"1-colour long", []string{"--blue", "aaa", "/"}, []blush.Locator{
+			blush.NewExact(aaa, blush.FgBlue),
 		}},
-		{"2-no colour", []string{"aaa", "bbb", "/"}, []blush.ColourLocator{
-			blush.ColourLocator{Colour: blush.DefaultColour, Locator: aaa},
-			blush.ColourLocator{Colour: blush.DefaultColour, Locator: bbb},
+		{"2-no colour", []string{"aaa", "bbb", "/"}, []blush.Locator{
+			blush.NewExact(aaa, blush.DefaultColour),
+			blush.NewExact(bbb, blush.DefaultColour),
 		}},
-		{"2-colour", []string{"-b", "aaa", "bbb", "/"}, []blush.ColourLocator{
-			blush.ColourLocator{Colour: blush.FgBlue, Locator: aaa},
-			blush.ColourLocator{Colour: blush.FgBlue, Locator: bbb},
+		{"2-colour", []string{"-b", "aaa", "bbb", "/"}, []blush.Locator{
+			blush.NewExact(aaa, blush.FgBlue),
+			blush.NewExact(bbb, blush.FgBlue),
 		}},
-		{"2-two colours", []string{"-b", "aaa", "-g", "bbb", "/"}, []blush.ColourLocator{
-			blush.ColourLocator{Colour: blush.FgBlue, Locator: aaa},
-			blush.ColourLocator{Colour: blush.FgGreen, Locator: bbb},
+		{"2-two colours", []string{"-b", "aaa", "-g", "bbb", "/"}, []blush.Locator{
+			blush.NewExact(aaa, blush.FgBlue),
+			blush.NewExact(bbb, blush.FgGreen),
 		}},
-		{"red", []string{"-r", "aaa", "--red", "bbb", "/"}, []blush.ColourLocator{
-			blush.ColourLocator{Colour: blush.FgRed, Locator: aaa},
-			blush.ColourLocator{Colour: blush.FgRed, Locator: bbb},
+		{"red", []string{"-r", "aaa", "--red", "bbb", "/"}, []blush.Locator{
+			blush.NewExact(aaa, blush.FgRed),
+			blush.NewExact(bbb, blush.FgRed),
 		}},
-		{"green", []string{"-g", "aaa", "--green", "bbb", "/"}, []blush.ColourLocator{
-			blush.ColourLocator{Colour: blush.FgGreen, Locator: aaa},
-			blush.ColourLocator{Colour: blush.FgGreen, Locator: bbb},
+		{"green", []string{"-g", "aaa", "--green", "bbb", "/"}, []blush.Locator{
+			blush.NewExact(aaa, blush.FgGreen),
+			blush.NewExact(bbb, blush.FgGreen),
 		}},
-		{"blue", []string{"-b", "aaa", "--blue", "bbb", "/"}, []blush.ColourLocator{
-			blush.ColourLocator{Colour: blush.FgBlue, Locator: aaa},
-			blush.ColourLocator{Colour: blush.FgBlue, Locator: bbb},
+		{"blue", []string{"-b", "aaa", "--blue", "bbb", "/"}, []blush.Locator{
+			blush.NewExact(aaa, blush.FgBlue),
+			blush.NewExact(bbb, blush.FgBlue),
 		}},
-		{"white", []string{"-w", "aaa", "--white", "bbb", "/"}, []blush.ColourLocator{
-			blush.ColourLocator{Colour: blush.FgWhite, Locator: aaa},
-			blush.ColourLocator{Colour: blush.FgWhite, Locator: bbb},
+		{"white", []string{"-w", "aaa", "--white", "bbb", "/"}, []blush.Locator{
+			blush.NewExact(aaa, blush.FgWhite),
+			blush.NewExact(bbb, blush.FgWhite),
 		}},
-		{"black", []string{"-bl", "aaa", "--black", "bbb", "/"}, []blush.ColourLocator{
-			blush.ColourLocator{Colour: blush.FgBlack, Locator: aaa},
-			blush.ColourLocator{Colour: blush.FgBlack, Locator: bbb},
+		{"black", []string{"-bl", "aaa", "--black", "bbb", "/"}, []blush.Locator{
+			blush.NewExact(aaa, blush.FgBlack),
+			blush.NewExact(bbb, blush.FgBlack),
 		}},
-		{"cyan", []string{"-cy", "aaa", "--cyan", "bbb", "/"}, []blush.ColourLocator{
-			blush.ColourLocator{Colour: blush.FgCyan, Locator: aaa},
-			blush.ColourLocator{Colour: blush.FgCyan, Locator: bbb},
+		{"cyan", []string{"-cy", "aaa", "--cyan", "bbb", "/"}, []blush.Locator{
+			blush.NewExact(aaa, blush.FgCyan),
+			blush.NewExact(bbb, blush.FgCyan),
 		}},
-		{"magenta", []string{"-mg", "aaa", "--magenta", "bbb", "/"}, []blush.ColourLocator{
-			blush.ColourLocator{Colour: blush.FgMagenta, Locator: aaa},
-			blush.ColourLocator{Colour: blush.FgMagenta, Locator: bbb},
+		{"magenta", []string{"-mg", "aaa", "--magenta", "bbb", "/"}, []blush.Locator{
+			blush.NewExact(aaa, blush.FgMagenta),
+			blush.NewExact(bbb, blush.FgMagenta),
 		}},
-		{"yellow", []string{"-yl", "aaa", "--yellow", "bbb", "/"}, []blush.ColourLocator{
-			blush.ColourLocator{Colour: blush.FgYellow, Locator: aaa},
-			blush.ColourLocator{Colour: blush.FgYellow, Locator: bbb},
+		{"yellow", []string{"-yl", "aaa", "--yellow", "bbb", "/"}, []blush.Locator{
+			blush.NewExact(aaa, blush.FgYellow),
+			blush.NewExact(bbb, blush.FgYellow),
 		}},
 	}
 
@@ -325,14 +326,10 @@ func TestColourArgs(t *testing.T) {
 	}
 }
 
-func argsEqual(a, b []blush.ColourLocator) bool {
-	if len(a) == 0 && len(b) == 0 {
-		return true
-	}
-	isIn := func(a blush.ColourLocator, haystack []blush.ColourLocator) bool {
+func argsEqual(a, b []blush.Locator) bool {
+	isIn := func(a blush.Locator, haystack []blush.Locator) bool {
 		for _, b := range haystack {
-			af, bf := a.Locator.(blush.Exact), b.Locator.(blush.Exact)
-			if a.Colour == b.Colour && string(af) == string(bf) {
+			if reflect.DeepEqual(a, b) {
 				return true
 			}
 		}
