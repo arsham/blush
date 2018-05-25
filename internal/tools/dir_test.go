@@ -24,11 +24,11 @@ func stringSliceEq(a, b []string) bool {
 	return true
 }
 
-func setup(count int) (dirs, expect []string, err error, cleanup func()) {
+func setup(count int) (dirs, expect []string, cleanup func(), err error) {
 	ret := make(map[string]struct{})
 	tmp, err := ioutil.TempDir("", "blush")
 	if err != nil {
-		return nil, nil, err, func() {}
+		return nil, nil, func() {}, err
 	}
 	cleanup = func() {
 		os.RemoveAll(tmp)
@@ -46,13 +46,13 @@ func setup(count int) (dirs, expect []string, err error, cleanup func()) {
 		l := path.Join(tmp, f.dir)
 		err := os.MkdirAll(l, os.ModePerm)
 		if err != nil {
-			return nil, nil, err, cleanup
+			return nil, nil, cleanup, err
 		}
 
 		for i := 0; i < f.count; i++ {
 			f, err := ioutil.TempFile(l, "file_")
 			if err != nil {
-				return nil, nil, err, cleanup
+				return nil, nil, cleanup, err
 			}
 			ret[path.Dir(f.Name())] = struct{}{}
 			expect = append(expect, f.Name())
@@ -83,7 +83,7 @@ func TestFilesError(t *testing.T) {
 }
 
 func TestFiles(t *testing.T) {
-	dirs, expect, err, cleanup := setup(10)
+	dirs, expect, cleanup, err := setup(10)
 	defer cleanup()
 	if err != nil {
 		t.Fatal(err)
@@ -154,7 +154,7 @@ func TestFilesRecursive(t *testing.T) {
 		t.Errorf("f = %v, want nil", f)
 	}
 
-	dirs, expect, err, cleanup := setup(10)
+	dirs, expect, cleanup, err := setup(10)
 	defer cleanup()
 	if err != nil {
 		t.Fatal(err)

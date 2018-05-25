@@ -5,6 +5,7 @@
 [![Build Status](https://travis-ci.org/arsham/blush.svg?branch=master)](https://travis-ci.org/arsham/blush)
 [![Coverage Status](https://codecov.io/gh/arsham/blush/branch/master/graph/badge.svg)](https://codecov.io/gh/arsham/blush)
 [![Go Report Card](https://goreportcard.com/badge/github.com/arsham/blush)](https://goreportcard.com/report/github.com/arsham/blush)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/28fa117b1362410980e17d0d432824c6)](https://www.codacy.com/app/arsham/blush?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=arsham/blush&amp;utm_campaign=Badge_Grade)
 
 With Blush, you can grep with colours, many colours!
 
