@@ -4,18 +4,31 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
-	"reflect"
 	"sort"
 	"testing"
 
-	"github.com/arsham/blush/tools"
+	"github.com/arsham/blush/internal/tools"
 )
 
-func setup(t *testing.T, count int) (dirs, expect []string, cleanup func()) {
+func stringSliceEq(a, b []string) bool {
+	sort.Strings(a)
+	sort.Strings(b)
+	if len(a) != len(b) {
+		return false
+	}
+	for i := 0; i < len(a); i++ {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func setup(count int) (dirs, expect []string, err error, cleanup func()) {
 	ret := make(map[string]struct{})
 	tmp, err := ioutil.TempDir("", "blush")
 	if err != nil {
-		t.Fatal(err)
+		return nil, nil, err, func() {}
 	}
 	cleanup = func() {
 		os.RemoveAll(tmp)
@@ -33,13 +46,13 @@ func setup(t *testing.T, count int) (dirs, expect []string, cleanup func()) {
 		l := path.Join(tmp, f.dir)
 		err := os.MkdirAll(l, os.ModePerm)
 		if err != nil {
-			t.Fatal(err)
+			return nil, nil, err, cleanup
 		}
 
 		for i := 0; i < f.count; i++ {
 			f, err := ioutil.TempFile(l, "file_")
 			if err != nil {
-				t.Fatal(err)
+				return nil, nil, err, cleanup
 			}
 			ret[path.Dir(f.Name())] = struct{}{}
 			expect = append(expect, f.Name())
@@ -52,7 +65,7 @@ func setup(t *testing.T, count int) (dirs, expect []string, cleanup func()) {
 	return
 }
 
-func TestFiles(t *testing.T) {
+func TestFilesError(t *testing.T) {
 	f, err := tools.Files(false)
 	if f != nil {
 		t.Errorf("f = %v, want nil", f)
@@ -67,20 +80,23 @@ func TestFiles(t *testing.T) {
 	if f != nil {
 		t.Errorf("f = %v, want nil", f)
 	}
+}
 
-	dirs, expect, cleanup := setup(t, 10)
+func TestFiles(t *testing.T) {
+	dirs, expect, err, cleanup := setup(10)
 	defer cleanup()
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	f, err = tools.Files(false, dirs...)
+	f, err := tools.Files(false, dirs...)
 	if err != nil {
 		t.Errorf("err = %v, want nil", err)
 	}
 	if f == nil {
 		t.Error("f = nil, want []string")
 	}
-	sort.Strings(expect)
-	sort.Strings(f)
-	if !reflect.DeepEqual(expect, f) {
+	if !stringSliceEq(expect, f) {
 		t.Errorf("f = %v, \nwant %v", f, expect)
 	}
 
@@ -101,7 +117,7 @@ func TestFilesOnSingleFile(t *testing.T) {
 	}
 	name := file.Name()
 	defer func() {
-		if err := os.Remove(name); err != nil {
+		if err = os.Remove(name); err != nil {
 			t.Error(err)
 		}
 	}()
@@ -138,8 +154,12 @@ func TestFilesRecursive(t *testing.T) {
 		t.Errorf("f = %v, want nil", f)
 	}
 
-	dirs, expect, cleanup := setup(t, 10)
+	dirs, expect, err, cleanup := setup(10)
 	defer cleanup()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	f, err = tools.Files(true, dirs...)
 	if err != nil {
 		t.Errorf("err = %v, want nil", err)
@@ -147,9 +167,7 @@ func TestFilesRecursive(t *testing.T) {
 	if f == nil {
 		t.Error("f = nil, want []string")
 	}
-	sort.Strings(expect)
-	sort.Strings(f)
-	if !reflect.DeepEqual(expect, f) {
+	if !stringSliceEq(expect, f) {
 		t.Errorf("f = %v, want %v", f, expect)
 	}
 

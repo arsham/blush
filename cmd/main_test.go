@@ -57,7 +57,7 @@ func setup(t *testing.T, args string) (stdout, stderr *stdFile, cleanup func()) 
 	if len(args) > 1 {
 		os.Args = append(os.Args, strings.Split(args, " ")...)
 	}
-	cmd.FatalErr = func(s string) {
+	cmd.FatalErr = func(s error) {
 		fmt.Fprintf(os.Stderr, "%s\n", s)
 	}
 
@@ -79,7 +79,7 @@ func getPipe(t *testing.T) (*os.File, func()) {
 	}
 	name := file.Name()
 	rmFile := func() {
-		if err := os.Remove(name); err != nil {
+		if err = os.Remove(name); err != nil {
 			t.Error(err)
 		}
 	}
@@ -125,7 +125,7 @@ func TestPipeInput(t *testing.T) {
 	}
 }
 
-func TestMainMatchExact(t *testing.T) {
+func TestMainMatch(t *testing.T) {
 	match := blush.Colourise("TOKEN", blush.FgBlue)
 	pwd, err := os.Getwd()
 	if err != nil {
@@ -133,87 +133,31 @@ func TestMainMatchExact(t *testing.T) {
 	}
 	location := path.Join(pwd, "../blush/testdata")
 
-	stdout, stderr, cleanup := setup(t, "-b TOKEN "+location)
-	defer cleanup()
-	cmd.Main()
+	tcs := []struct {
+		name  string
+		input string
+	}{
+		{"exact sensitive", "-b TOKEN"},
+		{"exact insensitive", "-i -b TOKEN"},
+		{"regexp sensitive", "-b TOK[EN]{2}"},
+		{"regexp insensitive", "-i -b tok[en]{2}"},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			stdout, stderr, cleanup := setup(t, fmt.Sprintf("%s %s", tc.input, location))
+			defer cleanup()
+			cmd.Main()
 
-	if len(stderr.String()) > 0 {
-		t.Errorf("len(stderr.String()) = %d, want 0: `%s`", len(stderr.String()), stderr.String())
-	}
-	if len(stdout.String()) == 0 {
-		t.Errorf("len(stdout.String()) = %d, want > 0", len(stdout.String()))
-	}
-	if !strings.Contains(stdout.String(), match) {
-		t.Errorf("want `%s` in `%s`", match, stdout.String())
-	}
-}
-
-func TestMainMatchIExact(t *testing.T) {
-	match := blush.Colourise("TOKEN", blush.FgBlue)
-	pwd, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	location := path.Join(pwd, "../blush/testdata")
-
-	stdout, stderr, cleanup := setup(t, "-i -b token "+location)
-	defer cleanup()
-	cmd.Main()
-
-	if len(stderr.String()) > 0 {
-		t.Errorf("len(stderr.String()) = %d, want 0: `%s`", len(stderr.String()), stderr.String())
-	}
-	if len(stdout.String()) == 0 {
-		t.Errorf("len(stdout.String()) = %d, want > 0", len(stdout.String()))
-	}
-	if !strings.Contains(stdout.String(), match) {
-		t.Errorf("want `%s` in `%s`", match, stdout.String())
-	}
-}
-
-func TestMainMatchRegexp(t *testing.T) {
-	match := blush.Colourise("TOKEN", blush.FgBlue)
-	pwd, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	location := path.Join(pwd, "../blush/testdata")
-
-	stdout, stderr, cleanup := setup(t, `-b TOK[EN]{2} `+location)
-	defer cleanup()
-	cmd.Main()
-
-	if len(stderr.String()) > 0 {
-		t.Errorf("len(stderr.String()) = %d, want 0: `%s`", len(stderr.String()), stderr.String())
-	}
-	if len(stdout.String()) == 0 {
-		t.Errorf("len(stdout.String()) = %d, want > 0", len(stdout.String()))
-	}
-	if !strings.Contains(stdout.String(), match) {
-		t.Errorf("want `%s` in `%s`", match, stdout.String())
-	}
-}
-
-func TestMainMatchRegexpInsensitive(t *testing.T) {
-	match := blush.Colourise("TOKEN", blush.FgBlue)
-	pwd, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	location := path.Join(pwd, "../blush/testdata")
-
-	stdout, stderr, cleanup := setup(t, `-i -b tok[en]{2} `+location)
-	defer cleanup()
-	cmd.Main()
-
-	if len(stderr.String()) > 0 {
-		t.Errorf("len(stderr.String()) = %d, want 0: `%s`", len(stderr.String()), stderr.String())
-	}
-	if len(stdout.String()) == 0 {
-		t.Errorf("len(stdout.String()) = %d, want > 0", len(stdout.String()))
-	}
-	if !strings.Contains(stdout.String(), match) {
-		t.Errorf("want `%s` in `%s`", match, stdout.String())
+			if len(stderr.String()) > 0 {
+				t.Errorf("len(stderr.String()) = %d, want 0: `%s`", len(stderr.String()), stderr.String())
+			}
+			if len(stdout.String()) == 0 {
+				t.Errorf("len(stdout.String()) = %d, want > 0", len(stdout.String()))
+			}
+			if !strings.Contains(stdout.String(), match) {
+				t.Errorf("want `%s` in `%s`", match, stdout.String())
+			}
+		})
 	}
 }
 
@@ -225,45 +169,30 @@ func TestMainMatchNoCut(t *testing.T) {
 	}
 	location := path.Join(pwd, "../blush/testdata")
 
-	stdout, stderr, cleanup := setup(t, fmt.Sprintf("-C -b %s %s", leaveMeHere, location))
-	defer cleanup()
-	cmd.Main()
+	tcs := []struct {
+		name, input string
+	}{
+		{"short", "-C"},
+		{"long", "--colour"},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			stdout, stderr, cleanup := setup(t, fmt.Sprintf("%s -b %s %s", tc.input, leaveMeHere, location))
+			defer cleanup()
+			cmd.Main()
 
-	if len(stderr.String()) > 0 {
-		t.Errorf("len(stderr.String()) = %d, want 0: `%s`", len(stderr.String()), stderr.String())
-	}
-	if len(stdout.String()) == 0 {
-		t.Errorf("len(stdout.String()) = %d, want > 0", len(stdout.String()))
-	}
-	for _, s := range matches {
-		if !strings.Contains(stdout.String(), s) {
-			t.Errorf("want `%s` in `%s`", s, stdout.String())
-		}
-	}
-}
-
-func TestMainMatchNoCutLong(t *testing.T) {
-	matches := []string{"TOKEN", "ONE", "TWO", "THREE", "FOUR"}
-	pwd, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	location := path.Join(pwd, "../blush/testdata")
-
-	stdout, stderr, cleanup := setup(t, fmt.Sprintf("--colour -b %s %s", leaveMeHere, location))
-	defer cleanup()
-	cmd.Main()
-
-	if len(stderr.String()) > 0 {
-		t.Errorf("len(stderr.String()) = %d, want 0: `%s`", len(stderr.String()), stderr.String())
-	}
-	if len(stdout.String()) == 0 {
-		t.Errorf("len(stdout.String()) = %d, want > 0", len(stdout.String()))
-	}
-	for _, s := range matches {
-		if !strings.Contains(stdout.String(), s) {
-			t.Errorf("want `%s` in `%s`", s, stdout.String())
-		}
+			if len(stderr.String()) > 0 {
+				t.Errorf("len(stderr.String()) = %d, want 0: `%s`", len(stderr.String()), stderr.String())
+			}
+			if len(stdout.String()) == 0 {
+				t.Errorf("len(stdout.String()) = %d, want > 0", len(stdout.String()))
+			}
+			for _, s := range matches {
+				if !strings.Contains(stdout.String(), s) {
+					t.Errorf("want `%s` in `%s`", s, stdout.String())
+				}
+			}
+		})
 	}
 }
 
@@ -287,8 +216,14 @@ func TestColourArgs(t *testing.T) {
 		want  []blush.Finder
 	}{
 		{"empty", []string{"/"}, []blush.Finder{}},
-		{"1-no colour", []string{"aaa", "/"}, []blush.Finder{
+		{"1-default colour", []string{"aaa", "/"}, []blush.Finder{
 			blush.NewExact(aaa, blush.DefaultColour),
+		}},
+		{"1-no colour", []string{"--no-colour", "aaa", "/"}, []blush.Finder{
+			blush.NewExact(aaa, blush.NoColour),
+		}},
+		{"1-no colour american", []string{"--no-color", "aaa", "/"}, []blush.Finder{
+			blush.NewExact(aaa, blush.NoColour),
 		}},
 		{"1-colour", []string{"-b", "aaa", "/"}, []blush.Finder{
 			blush.NewExact(aaa, blush.FgBlue),
@@ -296,9 +231,17 @@ func TestColourArgs(t *testing.T) {
 		{"1-colour long", []string{"--blue", "aaa", "/"}, []blush.Finder{
 			blush.NewExact(aaa, blush.FgBlue),
 		}},
-		{"2-no colour", []string{"aaa", "bbb", "/"}, []blush.Finder{
+		{"2-default colour", []string{"aaa", "bbb", "/"}, []blush.Finder{
 			blush.NewExact(aaa, blush.DefaultColour),
 			blush.NewExact(bbb, blush.DefaultColour),
+		}},
+		{"2-no colour", []string{"--no-colour", "aaa", "bbb", "/"}, []blush.Finder{
+			blush.NewExact(aaa, blush.NoColour),
+			blush.NewExact(bbb, blush.NoColour),
+		}},
+		{"2-no colour american", []string{"--no-color", "aaa", "bbb", "/"}, []blush.Finder{
+			blush.NewExact(aaa, blush.NoColour),
+			blush.NewExact(bbb, blush.NoColour),
 		}},
 		{"2-colour", []string{"-b", "aaa", "bbb", "/"}, []blush.Finder{
 			blush.NewExact(aaa, blush.FgBlue),

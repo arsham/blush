@@ -9,18 +9,18 @@ import (
 	"github.com/arsham/blush/blush"
 )
 
-func TestNewWalkerError(t *testing.T) {
+func TestNewMultiReadCloserError(t *testing.T) {
 	dirs := []string{"nomansland2987349237"}
-	w, err := blush.NewWalker(dirs, false)
+	w, err := blush.NewMultiReadCloser(dirs, false)
 	if err == nil {
-		t.Error("NewWalker(): err = nil, want error")
+		t.Error("NewMultiReadCloser(): err = nil, want error")
 	}
 	if w != nil {
-		t.Errorf("NewWalker(): w = %v, want nil", w)
+		t.Errorf("NewMultiReadCloser(): w = %v, want nil", w)
 	}
 }
 
-func TestNewWalker(t *testing.T) {
+func TestNewMultiReadCloser(t *testing.T) {
 	var (
 		c1 = "VJSNS5IeLCtEB"
 		c2 = "kkNL8vGNJn"
@@ -34,15 +34,15 @@ func TestNewWalker(t *testing.T) {
 
 	dirs, cleanup := setup(t, input)
 	defer cleanup()
-	w, err := blush.NewWalker(dirs, false)
+	w, err := blush.NewMultiReadCloser(dirs, false)
 	if err != nil {
-		t.Fatalf("NewWalker(): err = %v, want nil", err)
+		t.Fatalf("NewMultiReadCloser(): err = %v, want nil", err)
 	}
 	if w == nil {
-		t.Fatal("NewWalker(): w = nil, want *blush.Walker")
+		t.Fatal("NewMultiReadCloser(): w = nil, want *blush.MultiReadCloser")
 	}
 	defer func() {
-		if err := w.Close(); err != nil {
+		if err = w.Close(); err != nil {
 			t.Error(err)
 		}
 	}()
@@ -58,7 +58,7 @@ func TestNewWalker(t *testing.T) {
 	}
 }
 
-func TestNewWalkerRecursive(t *testing.T) {
+func TestNewMultiReadCloserRecursive(t *testing.T) {
 	var (
 		c1 = "1JQey4agQ3w9pqg3"
 		c2 = "7ToNRMgsOAR6A"
@@ -73,15 +73,15 @@ func TestNewWalkerRecursive(t *testing.T) {
 	dirs, cleanup := setup(t, input)
 	defer cleanup()
 	base := path.Join(path.Dir(dirs[0]), "a")
-	w, err := blush.NewWalker([]string{base}, true)
+	w, err := blush.NewMultiReadCloser([]string{base}, true)
 	if err != nil {
-		t.Fatalf("NewWalker(): err = %v, want nil - %v", err, base)
+		t.Fatalf("NewMultiReadCloser(): err = %v, want nil - %v", err, base)
 	}
 	if w == nil {
-		t.Fatal("NewWalker(): w = nil, want *blush.Walker")
+		t.Fatal("NewMultiReadCloser(): w = nil, want *blush.MultiReadCloser")
 	}
 	defer func() {
-		if err := w.Close(); err != nil {
+		if err = w.Close(); err != nil {
 			t.Error(err)
 		}
 	}()
@@ -97,7 +97,7 @@ func TestNewWalkerRecursive(t *testing.T) {
 	}
 }
 
-func TestNewWalkerNonRecursive(t *testing.T) {
+func TestNewMultiReadCloserNonRecursive(t *testing.T) {
 	var (
 		c1 = "DRAjfSq2y"
 		c2 = "ht3xCIQ"
@@ -112,15 +112,15 @@ func TestNewWalkerNonRecursive(t *testing.T) {
 	dirs, cleanup := setup(t, input)
 	defer cleanup()
 	base := path.Join(path.Dir(dirs[0]), "a")
-	w, err := blush.NewWalker([]string{base}, false)
+	w, err := blush.NewMultiReadCloser([]string{base}, false)
 	if err != nil {
-		t.Fatalf("NewWalker(): err = %v, want nil - %v", err, base)
+		t.Fatalf("NewMultiReadCloser(): err = %v, want nil - %v", err, base)
 	}
 	if w == nil {
-		t.Fatal("NewWalker(): w = nil, want *blush.Walker")
+		t.Fatal("NewMultiReadCloser(): w = nil, want *blush.MultiReadCloser")
 	}
 	defer func() {
-		if err := w.Close(); err != nil {
+		if err = w.Close(); err != nil {
 			t.Error(err)
 		}
 	}()

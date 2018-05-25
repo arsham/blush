@@ -8,18 +8,18 @@ import (
 
 var isRegExp = regexp.MustCompile(`[\^\$\.\{\}\[\]\*\?]`)
 
-// Finder is a strategy to find texts based on a plain text or regexp logic. If
-// Find finds the string, it will decorate it with the given Colour. If the
-// colour is zero, it doesn't decorate and works as a regular grep.
+// Finder finds texts based on a plain text or regexp logic. Any strings it
+// finds will be decorated with the given Colour. If the colour is zero, it
+// doesn't decorate and works as a regular grep.
 type Finder interface {
 	Find(string) (string, bool)
 	Colour() Colour
 }
 
-// NewLocator returns a `rx` object if the `search` is a valid regexp, otherwise
-// it returns a plain locator. If insensitive is true, the match will be case
-// insensitive. The `colour` argument can be in short form (b) or long form
-// (blue). If it cannot find the colour, it will fallback to DefaultColour. The
+// NewLocator returns a Rx object if search is a valid regexp, otherwise it
+// returns Exact or Iexact. If insensitive is true, the match will be case
+// insensitive. The colour argument can be in short form (b) or long form
+// (blue). If it cannot find the colour, it will fall-back to DefaultColour. The
 // colour also can be in hex format, which should be started with a pound sign
 // (#666).
 func NewLocator(colour, search string, insensitive bool) Finder {
@@ -80,6 +80,7 @@ func (e Exact) Colour() Colour {
 	return e.colour
 }
 
+// String will returned the colourised contents.
 func (e Exact) String() string {
 	return e.colourise(e.s, e.colour)
 }
@@ -121,6 +122,7 @@ func (i Iexact) Colour() Colour {
 	return i.colour
 }
 
+// String will returned the colourised contents.
 func (i Iexact) String() string {
 	return i.colourise(i.s, i.colour)
 }

@@ -17,7 +17,7 @@ func getPipe(t *testing.T) (*os.File, func()) {
 	}
 	name := file.Name()
 	rmFile := func() {
-		if err := os.Remove(name); err != nil {
+		if err = os.Remove(name); err != nil {
 			t.Error(err)
 		}
 	}
@@ -56,7 +56,7 @@ func TestGetReaderNoFiles(t *testing.T) {
 	}
 }
 
-func TestGetReaderNewWalkerError(t *testing.T) {
+func TestGetReaderNewMultiReadCloserError(t *testing.T) {
 	_, r, err := getReader([]string{""})
 	if err == nil {
 		t.Error("err = nil, want error")
@@ -84,7 +84,7 @@ func TestFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() {
-		if err := os.RemoveAll(dir); err != nil {
+		if err = os.RemoveAll(dir); err != nil {
 			t.Error(err)
 		}
 	}()
@@ -142,7 +142,7 @@ func TestFiles(t *testing.T) {
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			remaining, p, err := files(tc.input)
+			remaining, p, err := paths(tc.input)
 			if tc.wantErr {
 				if err == nil {
 					t.Error("err = nil, want error")

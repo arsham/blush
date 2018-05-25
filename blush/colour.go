@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// Some stock colours.
+// Some stock colours. There will be no colouring when NoColour is used.
 var (
 	NoColour  = Colour{-1, -1, -1}
 	FgRed     = Colour{255, 0, 0}
@@ -19,15 +19,15 @@ var (
 	FgYellow  = Colour{255, 255, 0}
 )
 
-// DefaultColour is a no colour. There will be no colouring when used.
-var DefaultColour = NoColour
+// DefaultColour is foreground blue.
+var DefaultColour = FgBlue
 
 // Colour is a RGB colour scheme. R, G and B should be between 0 and 255.
 type Colour struct {
 	R, G, B int
 }
 
-// Colourise wraps the `input` between colours for terminals.
+// Colourise wraps the input between colours defined in c for terminals.
 func Colourise(input string, c Colour) string {
 	return fmt.Sprintf("%s%s%s", format(c), input, unformat())
 }
@@ -52,25 +52,32 @@ func colorFromArg(colour string) Colour {
 	if strings.HasPrefix(colour, "#") {
 		return hexColour(colour)
 	}
+	return stockColour(colour)
+}
+
+func stockColour(colour string) Colour {
+	c := DefaultColour
 	switch colour {
 	case "r", "red":
-		return FgRed
+		c = FgRed
 	case "b", "blue":
-		return FgBlue
+		c = FgBlue
 	case "g", "green":
-		return FgGreen
+		c = FgGreen
 	case "bl", "black":
-		return FgBlack
+		c = FgBlack
 	case "w", "white":
-		return FgWhite
+		c = FgWhite
 	case "cy", "cyan":
-		return FgCyan
+		c = FgCyan
 	case "mg", "magenta":
-		return FgMagenta
+		c = FgMagenta
 	case "yl", "yellow":
-		return FgYellow
+		c = FgYellow
+	case "no-colour", "no-color":
+		c = NoColour
 	}
-	return DefaultColour
+	return c
 }
 
 func hexColour(colour string) Colour {
@@ -98,12 +105,12 @@ func hexColour(colour string) Colour {
 	return Colour{R: r, G: g, B: b}
 }
 
-// returns a number between 0-255 from a hex code. If the hex is not between 00
-// and ff, it returns -1.
+// getInt returns a number between 0-255 from a hex code. If the hex is not
+// between 00 and ff, it returns -1.
 func getInt(hex string) int {
 	d, err := strconv.ParseInt("0x"+hex, 0, 64)
 	if err != nil || d > 255 || d < 0 {
-		return -1
+		return -99
 	}
 	return int(d)
 }

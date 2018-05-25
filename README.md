@@ -23,11 +23,11 @@ are in green.
 ### Colouring Method
 
 With this method all texts are shown, but the matching words are coloured. You
-can activate this mode by providing `--color` argument.
+can activate this mode by providing `--colour` or `-C` argument.
 
 ### Piping
 
-You can pipe your input as well:
+Blush can also read from a pipe:
 ```bash
 $ cat FILENAME | blush -b "print in blue" -g "in green" -g "another green"
 $ cat FILENAME | blush "some text"
@@ -36,13 +36,15 @@ $ cat FILENAME | blush "some text"
 ## Arguments
 
 ```
-+----------+----------+-------------------------------+
-| Argument | Shortcut |             Notes             |
-+----------+----------+-------------------------------+
-| --colour | -C       | Colour, don't drop anything.  |
-| N/A      | -i       | Case insensitive matching     |
-| N/A      | -R       | Recursive                     |
-+----------+----------+-------------------------------+
++-------------+----------+------------------------------+
+|   Argument  | Shortcut |            Notes             |
++-------------+----------+------------------------------+
+| --colour    | -C       | Colour, don't drop anything. |
+| N/A         | -i       | Case insensitive matching    |
+| N/A         | -R       | Recursive                    |
+| --no-colour | N/A      | Doesn't colourize matches.   |
+| --no-color  | N/A      | Same as --no-colour          |
++-------------+----------+------------------------------+
 ```
 
 File names or paths are matched from the end. Any argument that doesn't match
@@ -62,8 +64,7 @@ $ blush -b match1 match3 FILENAME
 
 ### Colour Groups
 
-You can provide a number for a colour argument to create a colour group. For
-example:
+You can provide a number for a colour argument to create a colour group:
 
 ```bash
 $ blush -b1 match1 -b2 match2 -b1 match3 FILENAME
@@ -81,7 +82,7 @@ $ blush -b match1 match3 -g match2 FILENAME
 
 ### Colours
 
-You can choose a pre-defined colour, or pass it your own colour with a hash.
+You can choose a pre-defined colour, or pass it your own colour with a hash:
 
 ```
 +-----------+----------+

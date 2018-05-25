@@ -1,3 +1,4 @@
+// Package tools contains common tools used throughout this application.
 package tools
 
 import (

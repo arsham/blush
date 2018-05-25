@@ -18,12 +18,12 @@ func TestWriteToErrors(t *testing.T) {
 	r := ioutil.NopCloser(new(bytes.Buffer))
 	tcs := []struct {
 		name   string
-		b      blush.Blush
+		b      *blush.Blush
 		writer io.Writer
 		errTxt string
 	}{
-		{"no input", blush.Blush{}, w, blush.ErrNoInput.Error()},
-		{"no writer", blush.Blush{Reader: r}, nil, blush.ErrNoWriter.Error()},
+		{"no input", &blush.Blush{}, w, blush.ErrNoReader.Error()},
+		{"no writer", &blush.Blush{Reader: r}, nil, blush.ErrNoWriter.Error()},
 	}
 
 	for _, tc := range tcs {
@@ -34,7 +34,7 @@ func TestWriteToErrors(t *testing.T) {
 				return
 			}
 			if n != 0 {
-				t.Errorf("l.Write(): n = %d, want 0", n)
+				t.Errorf("l.WriteTo(): n = %d, want 0", n)
 			}
 			if !strings.Contains(err.Error(), tc.errTxt) {
 				t.Errorf("want `%s` in `%s`", tc.errTxt, err.Error())
@@ -49,17 +49,12 @@ func TestWriteToNoMatch(t *testing.T) {
 		t.Fatal(err)
 	}
 	location := path.Join(pwd, "testdata")
-	w, err := blush.NewWalker([]string{location}, true)
+	r, err := blush.NewMultiReadCloser([]string{location}, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	total, err := walkerLen(w)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	l := blush.Blush{
-		Reader:  w,
+	l := &blush.Blush{
+		Reader:  r,
 		Finders: []blush.Finder{blush.NewExact("SHOULDNOTFINDTHISONE", blush.NoColour)},
 	}
 	buf := new(bytes.Buffer)
@@ -67,8 +62,8 @@ func TestWriteToNoMatch(t *testing.T) {
 	if err != nil {
 		t.Errorf("err = %v, want %v", err, nil)
 	}
-	if n != total {
-		t.Errorf("l.Write(): n = %d, want %d", n, total)
+	if n != 0 {
+		t.Errorf("l.WriteTo(): n = %d, want %d", n, 0)
 	}
 	if buf.Len() > 0 {
 		t.Errorf("buf.Len() = %d, want 0", buf.Len())
@@ -82,16 +77,12 @@ func TestWriteToMatchNoColourPlain(t *testing.T) {
 		t.Fatal(err)
 	}
 	location := path.Join(pwd, "testdata")
-	w, err := blush.NewWalker([]string{location}, true)
+	r, err := blush.NewMultiReadCloser([]string{location}, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	total, err := walkerLen(w)
-	if err != nil {
-		t.Fatal(err)
-	}
-	l := blush.Blush{
-		Reader:  w,
+	l := &blush.Blush{
+		Reader:  r,
 		Finders: []blush.Finder{blush.NewExact(match, blush.NoColour)},
 	}
 
@@ -100,11 +91,11 @@ func TestWriteToMatchNoColourPlain(t *testing.T) {
 	if err != nil {
 		t.Errorf("err = %v, want %v", err, nil)
 	}
-	if n != total {
-		t.Errorf("l.Write(): n = %d, want %d", n, total)
-	}
 	if buf.Len() == 0 {
 		t.Errorf("buf.Len() = %d, want > 0", buf.Len())
+	}
+	if int(n) != buf.Len() {
+		t.Errorf("l.WriteTo(): n = %d, want %d", int(n), buf.Len())
 	}
 	if !strings.Contains(buf.String(), match) {
 		t.Errorf("want `%s` in `%s`", match, buf.String())
@@ -124,16 +115,12 @@ func TestWriteToMatchColour(t *testing.T) {
 		t.Fatal(err)
 	}
 	location := path.Join(pwd, "testdata")
-	w, err := blush.NewWalker([]string{location}, true)
+	r, err := blush.NewMultiReadCloser([]string{location}, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	total, err := walkerLen(w)
-	if err != nil {
-		t.Fatal(err)
-	}
-	l := blush.Blush{
-		Reader:  w,
+	l := &blush.Blush{
+		Reader:  r,
 		Finders: []blush.Finder{blush.NewExact("TOKEN", blush.FgBlue)},
 	}
 
@@ -142,11 +129,11 @@ func TestWriteToMatchColour(t *testing.T) {
 	if err != nil {
 		t.Errorf("err = %v, want %v", err, nil)
 	}
-	if n != total {
-		t.Errorf("l.Write(): n = %d, want %d", n, total)
-	}
 	if buf.Len() == 0 {
 		t.Errorf("buf.Len() = %d, want > 0", buf.Len())
+	}
+	if int(n) != buf.Len() {
+		t.Errorf("l.WriteTo(): n = %d, want %d", int(n), buf.Len())
 	}
 	if !strings.Contains(buf.String(), match) {
 		t.Errorf("want `%s` in `%s`", match, buf.String())
@@ -180,28 +167,24 @@ func TestWriteToMatchCountColour(t *testing.T) {
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			location := path.Join(pwd, "testdata")
-			w, err := blush.NewWalker([]string{location}, tc.recursive)
-			if err != nil {
-				t.Fatal(err)
-			}
-			total, err := walkerLen(w)
+			r, err := blush.NewMultiReadCloser([]string{location}, tc.recursive)
 			if err != nil {
 				t.Fatal(err)
 			}
 
 			match := blush.Colourise(tc.name, blush.FgRed)
-			l := blush.Blush{
-				Reader:  w,
+			l := &blush.Blush{
+				Reader:  r,
 				Finders: []blush.Finder{blush.NewExact(tc.name, blush.FgRed)},
 			}
 
 			buf := new(bytes.Buffer)
 			n, err := l.WriteTo(buf)
 			if err != nil {
-				t.Errorf("l.Write(): err = %v, want %v", err, nil)
+				t.Errorf("l.WriteTo(): err = %v, want %v", err, nil)
 			}
-			if n != total {
-				t.Errorf("l.Write(): n = %d, want %d", n, total)
+			if int(n) != buf.Len() {
+				t.Errorf("l.WriteTo(): n = %d, want %d", int(n), buf.Len())
 			}
 			count := strings.Count(buf.String(), match)
 			if count != tc.count {
@@ -222,16 +205,12 @@ func TestWriteToMultiColour(t *testing.T) {
 		t.Fatal(err)
 	}
 	location := path.Join(pwd, "testdata")
-	w, err := blush.NewWalker([]string{location}, true)
+	r, err := blush.NewMultiReadCloser([]string{location}, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	total, err := walkerLen(w)
-	if err != nil {
-		t.Fatal(err)
-	}
-	l := blush.Blush{
-		Reader: w,
+	l := &blush.Blush{
+		Reader: r,
 		Finders: []blush.Finder{
 			blush.NewExact("TWO", blush.FgMagenta),
 			blush.NewExact("THREE", blush.FgRed),
@@ -243,11 +222,11 @@ func TestWriteToMultiColour(t *testing.T) {
 	if err != nil {
 		t.Errorf("err = %v, want %v", err, nil)
 	}
-	if n != total {
-		t.Errorf("l.Write(): n = %d, want %d", n, total)
-	}
 	if buf.Len() == 0 {
 		t.Errorf("buf.Len() = %d, want > 0", buf.Len())
+	}
+	if int(n) != buf.Len() {
+		t.Errorf("l.WriteTo(): n = %d, want %d", int(n), buf.Len())
 	}
 	count := strings.Count(buf.String(), two)
 	if count != 2*3 {
@@ -270,16 +249,12 @@ func TestWriteToMultiColourColourMode(t *testing.T) {
 		t.Fatal(err)
 	}
 	location := path.Join(pwd, "testdata")
-	w, err := blush.NewWalker([]string{location}, true)
+	r, err := blush.NewMultiReadCloser([]string{location}, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	total, err := walkerLen(w)
-	if err != nil {
-		t.Fatal(err)
-	}
-	l := blush.Blush{
-		Reader: w,
+	l := &blush.Blush{
+		Reader: r,
 		NoCut:  true,
 		Finders: []blush.Finder{
 			blush.NewExact("TWO", blush.FgMagenta),
@@ -292,11 +267,11 @@ func TestWriteToMultiColourColourMode(t *testing.T) {
 	if err != nil {
 		t.Errorf("err = %v, want %v", err, nil)
 	}
-	if n != total {
-		t.Errorf("l.Write(): n = %d, want %d", n, total)
-	}
 	if buf.Len() == 0 {
 		t.Errorf("buf.Len() = %d, want > 0", buf.Len())
+	}
+	if int(n) != buf.Len() {
+		t.Errorf("l.WriteTo(): n = %d, want %d", int(n), buf.Len())
 	}
 	count := strings.Count(buf.String(), two)
 	if count != 2*3 {
@@ -317,7 +292,7 @@ func TestWriteToMultipleMatchInOneLine(t *testing.T) {
 	line2 := "someone should find this line\n"
 	input1 := bytes.NewBuffer([]byte(line1))
 	input2 := bytes.NewBuffer([]byte(line2))
-	w := ioutil.NopCloser(io.MultiReader(input1, input2))
+	r := ioutil.NopCloser(io.MultiReader(input1, input2))
 	match := fmt.Sprintf(
 		"someone %s find %s line",
 		blush.Colourise("should", blush.FgRed),
@@ -325,8 +300,8 @@ func TestWriteToMultipleMatchInOneLine(t *testing.T) {
 	)
 	out := new(bytes.Buffer)
 
-	l := blush.Blush{
-		Reader: w,
+	l := &blush.Blush{
+		Reader: r,
 		Finders: []blush.Finder{
 			blush.NewExact("this", blush.FgMagenta),
 			blush.NewExact("should", blush.FgRed),
@@ -354,7 +329,7 @@ func TestBlushClosesReader(t *testing.T) {
 			return nil
 		},
 	}
-	l := blush.Blush{
+	l := &blush.Blush{
 		Reader: w,
 	}
 	err := l.Close()
@@ -363,6 +338,131 @@ func TestBlushClosesReader(t *testing.T) {
 	}
 	if !called {
 		t.Error("didn't close the reader")
+	}
+}
+
+func TestBlushReadOneStream(t *testing.T) {
+	input := bytes.NewBuffer([]byte("one two three four"))
+	match := blush.NewExact("three", blush.FgBlue)
+	r := ioutil.NopCloser(input)
+	l := &blush.Blush{
+		Finders: []blush.Finder{match},
+		Reader:  r,
+	}
+	defer l.Close()
+	emptyP := make([]byte, 10)
+	tcs := []struct {
+		name    string
+		p       []byte
+		wantErr error
+		wantLen int
+		wantP   string
+	}{
+		{"one", make([]byte, len("one ")), nil, len("one "), "one "},
+		{"two", make([]byte, len("two ")), nil, len("two "), "two "},
+		{"three", make([]byte, len(match.String())), nil, len(match.String()), match.String()},
+		{"four", make([]byte, len(" four\n")), nil, len(" four\n"), " four\n"}, // there is always a new line after each reader.
+		{"empty", emptyP, io.EOF, 0, string(emptyP)},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			n, err := l.Read(tc.p)
+			if err != tc.wantErr {
+				t.Error(err)
+			}
+			if n != tc.wantLen {
+				t.Errorf("l.Read(): n = %d, want %d", n, tc.wantLen)
+			}
+			if string(tc.p) != tc.wantP {
+				t.Errorf("p = `%s`, want `%s`", tc.p, tc.wantP)
+			}
+		})
+	}
+}
+
+func TestBlushReadTwoStreams(t *testing.T) {
+	b1 := []byte("one for all\n")
+	b2 := []byte("all for one\n")
+	input1 := bytes.NewBuffer(b1)
+	input2 := bytes.NewBuffer(b2)
+	match := blush.NewExact("one", blush.FgBlue)
+	r := ioutil.NopCloser(io.MultiReader(input1, input2))
+	l := &blush.Blush{
+		Finders: []blush.Finder{match},
+		Reader:  r,
+	}
+	defer l.Close()
+
+	buf := new(bytes.Buffer)
+	n, err := buf.ReadFrom(l)
+	if err != nil {
+		t.Error(err)
+	}
+	expectLen := len(b1) + len(b2) - len("one")*2 + len(match.String())*2
+	if int(n) != expectLen {
+		t.Errorf("l.Read(): n = %d, want %d", n, expectLen)
+	}
+	expectStr := fmt.Sprintf("%s%s",
+		strings.Replace(string(b1), "one", match.String(), 1),
+		strings.Replace(string(b2), "one", match.String(), 1),
+	)
+	if buf.String() != expectStr {
+		t.Errorf("buf.String() = %s, want %s", buf.String(), expectStr)
+	}
+}
+
+func TestBlushReadHalfWay(t *testing.T) {
+	b1 := []byte("one for all\n")
+	b2 := []byte("all for one\n")
+	input1 := bytes.NewBuffer(b1)
+	input2 := bytes.NewBuffer(b2)
+	match := blush.NewExact("one", blush.FgBlue)
+	r := ioutil.NopCloser(io.MultiReader(input1, input2))
+	l := &blush.Blush{
+		Finders: []blush.Finder{match},
+		Reader:  r,
+	}
+	p := make([]byte, len(b1))
+	_, err := l.Read(p)
+	if err != nil {
+		t.Error(err)
+	}
+	n, err := l.Read(p)
+	if n != len(b1) {
+		t.Errorf("l.Read(): n = %d, want %d", n, len(b1))
+	}
+	if err != nil {
+		t.Errorf("l.Read(): err = %v, want %v", err, nil)
+	}
+}
+
+func TestBlushReadOnClosed(t *testing.T) {
+	b1 := []byte("one for all\n")
+	b2 := []byte("all for one\n")
+	input1 := bytes.NewBuffer(b1)
+	input2 := bytes.NewBuffer(b2)
+	match := blush.NewExact("one", blush.FgBlue)
+	r := ioutil.NopCloser(io.MultiReader(input1, input2))
+	l := &blush.Blush{
+		Finders: []blush.Finder{match},
+		Reader:  r,
+	}
+	p := make([]byte, len(b1))
+	_, err := l.Read(p)
+	if err != nil {
+		t.Error(err)
+	}
+	err = l.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	n, err := l.Read(p)
+	if n != 0 {
+		t.Errorf("l.Read(): n = %d, want 0", n)
+	}
+	if err != blush.ErrClosed {
+		t.Errorf("l.Read(): err = %v, want %v", err, blush.ErrClosed)
 	}
 }
 

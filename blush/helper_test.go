@@ -1,14 +1,11 @@
 package blush_test
 
 import (
-	"bytes"
 	"io"
 	"io/ioutil"
 	"os"
 	"path"
 	"testing"
-
-	"github.com/arsham/blush/blush"
 )
 
 // this file contains helpers for all tests in this package.
@@ -57,15 +54,4 @@ func setup(t *testing.T, input []testCase) ([]string, func()) {
 			t.Error(err)
 		}
 	}
-}
-
-// this function reads everything in `w` and returns the length of contents.
-// Particularly useful for comparing the WriteTo and Write returning length.
-func walkerLen(walker *blush.Walker) (int64, error) {
-	w, err := blush.NewWalker(walker.Paths, walker.Recursive)
-	if err != nil {
-		return 0, err
-	}
-	buf := new(bytes.Buffer)
-	return buf.ReadFrom(w)
 }

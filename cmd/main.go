@@ -2,19 +2,22 @@
 //
 // Main() reads the provided arguments from the command line and creates a
 // blush.Blush instance. If there is any error, it will terminate the
-// application with error code `1`, otherwise it calls the Write() method of
-// Blush and exits normally.
+// application with os.Exit(1), otherwise it calls the Write() method of Blush
+// and exits normally.
 //
 // GetBlush() returns an error if no arguments are provided or it can't find all
 // the passed files. Files should be last arguments, otherwise they are counted
 // as matching strings. If there is no file passed, the input should come in
-// from Stdin as a pipe. We are not using the usual flag package because it
-// cannot handle variables in the args and continues grouping of passed
-// arguments.
+// from Stdin as a pipe.
 //
-// hasArg(input []string, arg string) function looks for `arg` in `input` and if
-// it finds it, it removes it and returns the remaining slice with a boolean to
+// hasArg(input []string, arg string) function looks for arg in input and if it
+// finds it, it removes it and returns the remaining slice with a boolean to
 // tell it was found.
+//
+// Notes
+//
+// We are not using the usual flag package because it cannot handle variables in
+// the args and continues grouping of passed arguments.
 package cmd
 
 import (
@@ -29,34 +32,40 @@ import (
 )
 
 // FatalErr variables is provided to support the tests.
-var FatalErr = func(s string) {
+var FatalErr = func(s error) {
 	log.Fatal(s)
 }
 
 // Main reads the provided arguments from the command line and creates a
-// blush.Blush instance.
+// blush.Blush instance. It then uses io.Copy() to write to standard output.
 func Main() {
 	b, err := GetBlush(os.Args)
 	if err != nil {
-		FatalErr(err.Error())
+		FatalErr(err)
 		return
 	}
 	defer func() {
 		if err := b.Close(); err != nil {
-			FatalErr(err.Error())
+			FatalErr(err)
 		}
 	}()
-	if _, err = b.WriteTo(os.Stdout); err != nil {
-		FatalErr(err.Error())
+	if _, err := io.Copy(os.Stdout, b); err != nil {
+		FatalErr(err)
 		return
 	}
-	// io.Copy(b, os.Stdout)
 }
 
 // GetBlush returns an error if no arguments are provided or it can't find all
 // the passed files in the input.
-func GetBlush(input []string) (b *blush.Blush, err error) {
-	var ok bool
+//
+// Note
+//
+// The first argument will be dropped as it will be the application's name.
+func GetBlush(input []string) (*blush.Blush, error) {
+	var (
+		ok    bool
+		noCut bool
+	)
 	if len(input) == 1 {
 		return nil, ErrNoInput
 	}
@@ -64,16 +73,18 @@ func GetBlush(input []string) (b *blush.Blush, err error) {
 	if err != nil {
 		return nil, err
 	}
-	b = &blush.Blush{}
-	b.Reader = r
 	if remaining, ok = hasArg(remaining, "-C"); ok {
-		b.NoCut = true
+		noCut = true
 	}
 	if remaining, ok = hasArg(remaining, "--colour"); ok {
-		b.NoCut = true
+		noCut = true
 	}
-	b.Finders = getLocator(remaining)
-	return
+	finders := getFinders(remaining)
+	return &blush.Blush{
+		Finders: finders,
+		Reader:  r,
+		NoCut:   noCut,
+	}, nil
 }
 
 // getReader returns os.Stdin if it is piped to the program, otherwise looks for
@@ -92,20 +103,20 @@ func getReader(input []string) (remaining []string, r io.ReadCloser, err error) 
 		return remaining, os.Stdin, nil
 	}
 
-	remaining, p, err := files(input)
+	remaining, p, err := paths(input)
 	if err != nil {
 		return nil, nil, err
 	}
-	w, err := blush.NewWalker(p, recursive)
+	w, err := blush.NewMultiReadCloser(p, recursive)
 	if err != nil {
 		return nil, nil, err
 	}
 	return remaining, w, nil
 }
 
-// files starts from the end of the slice and removes any file it finds and
-// returns them in p.
-func files(input []string) (remaining []string, p []string, err error) {
+// paths starts from the end of the slice and removes any paths/globs/files it
+// finds and returns them in p.
+func paths(input []string) (remaining []string, p []string, err error) {
 	var (
 		foundOne bool
 		counter  int
@@ -171,7 +182,7 @@ func inStringSlice(s string, haystack []string) bool {
 	return false
 }
 
-func getLocator(input []string) []blush.Finder {
+func getFinders(input []string) []blush.Finder {
 	var (
 		lastColour  string
 		ret         []blush.Finder
