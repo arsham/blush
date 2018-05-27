@@ -9,18 +9,18 @@ import (
 	"github.com/arsham/blush/blush"
 )
 
-func TestNewMultiReadCloserError(t *testing.T) {
+func TestNewMultiReaderError(t *testing.T) {
 	dirs := []string{"nomansland2987349237"}
-	w, err := blush.NewMultiReadCloser(dirs, false)
+	w, err := blush.NewMultiReaderFromPaths(dirs, false)
 	if err == nil {
-		t.Error("NewMultiReadCloser(): err = nil, want error")
+		t.Error("NewMultiReaderFromPaths(): err = nil, want error")
 	}
 	if w != nil {
-		t.Errorf("NewMultiReadCloser(): w = %v, want nil", w)
+		t.Errorf("NewMultiReaderFromPaths(): w = %v, want nil", w)
 	}
 }
 
-func TestNewMultiReadCloser(t *testing.T) {
+func TestNewMultiReader(t *testing.T) {
 	var (
 		c1 = "VJSNS5IeLCtEB"
 		c2 = "kkNL8vGNJn"
@@ -34,12 +34,12 @@ func TestNewMultiReadCloser(t *testing.T) {
 
 	dirs, cleanup := setup(t, input)
 	defer cleanup()
-	w, err := blush.NewMultiReadCloser(dirs, false)
+	w, err := blush.NewMultiReaderFromPaths(dirs, false)
 	if err != nil {
-		t.Fatalf("NewMultiReadCloser(): err = %v, want nil", err)
+		t.Fatalf("NewMultiReaderFromPaths(): err = %v, want nil", err)
 	}
 	if w == nil {
-		t.Fatal("NewMultiReadCloser(): w = nil, want *blush.MultiReadCloser")
+		t.Fatal("NewMultiReaderFromPaths(): w = nil, want *blush.MultiReader")
 	}
 	defer func() {
 		if err = w.Close(); err != nil {
@@ -58,7 +58,7 @@ func TestNewMultiReadCloser(t *testing.T) {
 	}
 }
 
-func TestNewMultiReadCloserRecursive(t *testing.T) {
+func TestNewMultiReaderRecursive(t *testing.T) {
 	var (
 		c1 = "1JQey4agQ3w9pqg3"
 		c2 = "7ToNRMgsOAR6A"
@@ -73,12 +73,12 @@ func TestNewMultiReadCloserRecursive(t *testing.T) {
 	dirs, cleanup := setup(t, input)
 	defer cleanup()
 	base := path.Join(path.Dir(dirs[0]), "a")
-	w, err := blush.NewMultiReadCloser([]string{base}, true)
+	w, err := blush.NewMultiReaderFromPaths([]string{base}, true)
 	if err != nil {
-		t.Fatalf("NewMultiReadCloser(): err = %v, want nil - %v", err, base)
+		t.Fatalf("NewMultiReaderFromPaths(): err = %v, want nil - %v", err, base)
 	}
 	if w == nil {
-		t.Fatal("NewMultiReadCloser(): w = nil, want *blush.MultiReadCloser")
+		t.Fatal("NewMultiReaderFromPaths(): w = nil, want *blush.MultiReader")
 	}
 	defer func() {
 		if err = w.Close(); err != nil {
@@ -97,7 +97,7 @@ func TestNewMultiReadCloserRecursive(t *testing.T) {
 	}
 }
 
-func TestNewMultiReadCloserNonRecursive(t *testing.T) {
+func TestNewMultiReaderNonRecursive(t *testing.T) {
 	var (
 		c1 = "DRAjfSq2y"
 		c2 = "ht3xCIQ"
@@ -112,12 +112,12 @@ func TestNewMultiReadCloserNonRecursive(t *testing.T) {
 	dirs, cleanup := setup(t, input)
 	defer cleanup()
 	base := path.Join(path.Dir(dirs[0]), "a")
-	w, err := blush.NewMultiReadCloser([]string{base}, false)
+	w, err := blush.NewMultiReaderFromPaths([]string{base}, false)
 	if err != nil {
-		t.Fatalf("NewMultiReadCloser(): err = %v, want nil - %v", err, base)
+		t.Fatalf("NewMultiReaderFromPaths(): err = %v, want nil - %v", err, base)
 	}
 	if w == nil {
-		t.Fatal("NewMultiReadCloser(): w = nil, want *blush.MultiReadCloser")
+		t.Fatal("NewMultiReaderFromPaths(): w = nil, want *blush.MultiReader")
 	}
 	defer func() {
 		if err = w.Close(); err != nil {

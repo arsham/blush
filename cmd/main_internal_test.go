@@ -56,7 +56,7 @@ func TestGetReaderNoFiles(t *testing.T) {
 	}
 }
 
-func TestGetReaderNewMultiReadCloserError(t *testing.T) {
+func TestGetReaderNewMultiReaderFromPathsError(t *testing.T) {
 	_, r, err := getReader([]string{""})
 	if err == nil {
 		t.Error("err = nil, want error")
