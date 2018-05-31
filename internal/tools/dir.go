@@ -3,10 +3,12 @@ package tools
 
 import (
 	"errors"
+	"io"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
+	"unicode"
 )
 
 // Files returns all files found in paths. If recursive is false, it only
@@ -30,7 +32,9 @@ func Files(recursive bool, paths ...string) ([]string, error) {
 	if len(fileList) == 0 {
 		return nil, errors.New("no files found")
 	}
-	return unique(fileList), nil
+	fileList = unique(fileList)
+	fileList = nonBinary(fileList)
+	return fileList, nil
 }
 
 func unique(fileList []string) []string {
@@ -44,6 +48,18 @@ func unique(fileList []string) []string {
 		}
 		seen[f] = struct{}{}
 		ret = append(ret, f)
+	}
+	return ret
+}
+
+func nonBinary(fileList []string) []string {
+	var (
+		ret []string
+	)
+	for _, f := range fileList {
+		if isPlainText(f) {
+			ret = append(ret, f)
+		}
 	}
 	return ret
 }
@@ -84,4 +100,28 @@ func files(location string) ([]string, error) {
 		}
 	}
 	return fileList, nil
+}
+
+func isPlainText(name string) bool {
+	f, err := os.Open(name)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+	header := make([]byte, 512)
+	_, err = f.Read(header)
+	if err != nil && err != io.EOF {
+		return false
+	}
+	for _, r := range string(header) {
+		// ignoring null, return, etc. which are acceptable in plain text files.
+		switch r {
+		case 0, '\n', '\t', '\r':
+			continue
+		}
+		if r > unicode.MaxASCII || !unicode.IsPrint(r) {
+			return false
+		}
+	}
+	return true
 }

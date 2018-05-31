@@ -1,5 +1,5 @@
 hash: 847e012c171fb24aaca9a05c59bd1b4de5a9ee4d76d7b25aa13dc5a77fab2972
-updated: 2018-05-23T15:53:34.640594987+01:00
+updated: 2018-05-31T15:25:38.757060162+01:00
 imports:
 - name: github.com/pkg/errors
   version: 816c9085562cd7ee03e7f8188a1cfd942858cded

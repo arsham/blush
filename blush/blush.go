@@ -64,6 +64,9 @@ func (b *Blush) search(w io.Writer) int64 {
 	var total int
 	scanner := bufio.NewScanner(b.Reader)
 	scanner.Split(bufio.ScanLines)
+	max := bufio.MaxScanTokenSize * 120
+	buf := make([]byte, max)
+	scanner.Buffer(buf, max)
 	for scanner.Scan() {
 		var foundStr string
 		line := scanner.Text()

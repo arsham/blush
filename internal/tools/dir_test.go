@@ -1,6 +1,8 @@
 package tools_test
 
 import (
+	"image"
+	"image/png"
 	"io/ioutil"
 	"os"
 	"path"
@@ -22,6 +24,15 @@ func stringSliceEq(a, b []string) bool {
 		}
 	}
 	return true
+}
+
+func inStringSlice(a string, b []string) bool {
+	for _, s := range b {
+		if a == s {
+			return true
+		}
+	}
+	return false
 }
 
 func setup(count int) (dirs, expect []string, cleanup func(), err error) {
@@ -242,5 +253,80 @@ func TestIgnoreNontPermissionedFolders(t *testing.T) {
 	}
 	if !stringSliceEq(expect, f) {
 		t.Errorf("f = %v, want %v", f, expect)
+	}
+}
+
+// first returned string is text format, second is binary
+func setupBinaryFile(t *testing.T) (string, string, func()) {
+	dir, err := ioutil.TempDir("", "blush_dir")
+	if err != nil {
+		t.Fatal(err)
+	}
+	txt, err := os.Create(path.Join(dir, "txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	img := image.NewRGBA(image.Rect(0, 0, 1, 1))
+	binary, err := os.Create(path.Join(dir, "binary"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	txt.WriteString("aaaaa")
+	png.Encode(binary, img)
+	return txt.Name(), binary.Name(), func() {
+		if err = os.RemoveAll(dir); err != nil {
+			t.Error(err)
+		}
+	}
+}
+
+func TestIgnoreNonTextFiles(t *testing.T) {
+	txt, binary, cleanup := setupBinaryFile(t)
+	defer cleanup()
+	paths := path.Dir(txt)
+	got, err := tools.Files(false, paths)
+	if err != nil {
+		t.Error(err)
+	}
+	if !inStringSlice(txt, got) {
+		t.Errorf("%s not found in %v", txt, got)
+	}
+	if inStringSlice(binary, got) {
+		t.Errorf("%s was found in %v", binary, got)
+	}
+}
+
+func TestUnPrintableButTextContents(t *testing.T) {
+	tcs := []struct {
+		name  string
+		input string
+	}{
+		{"null", string(0)},
+		{"space", " "},
+		{"R", "\r"},
+		{"Line feed", "\n"},
+		{"Tab", "\t"},
+		{"mix", "\na\tbbb\n\n\n\t\t\n \t \n \r\nsjdk"},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			file, err := ioutil.TempFile("", "blush_text")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer func() {
+				if err = os.Remove(file.Name()); err != nil {
+					t.Error(err)
+				}
+			}()
+			file.WriteString(tc.input)
+			got, err := tools.Files(false, file.Name())
+			if err != nil {
+				t.Error(err)
+			}
+			if len(got) != 1 {
+				t.Errorf("len(%v) = %d, want 1", got, len(got))
+			}
+		})
 	}
 }

@@ -87,7 +87,7 @@ func getReader(input []string) (remaining []string, r io.ReadCloser, err error) 
 	if err != nil {
 		return nil, nil, err
 	}
-	w, err := blush.NewMultiReaderFromPaths(p, recursive)
+	w, err := blush.NewMultiReader(blush.WithPaths(p, recursive))
 	if err != nil {
 		return nil, nil, err
 	}
