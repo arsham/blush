@@ -493,7 +493,3 @@ func TestBlushReadLongOneLineText(t *testing.T) {
 		t.Errorf("b.Read(): err = %v, want %v", err, blush.ErrClosed)
 	}
 }
-
-func TestPrintFileName(t *testing.T) {
-	t.Skip("not implemented")
-}

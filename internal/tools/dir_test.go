@@ -300,13 +300,17 @@ func TestUnPrintableButTextContents(t *testing.T) {
 	tcs := []struct {
 		name  string
 		input string
+		want  bool
 	}{
-		{"null", string(0)},
-		{"space", " "},
-		{"R", "\r"},
-		{"Line feed", "\n"},
-		{"Tab", "\t"},
-		{"mix", "\na\tbbb\n\n\n\t\t\n \t \n \r\nsjdk"},
+		{"null", string(0), true},
+		{"space", " ", true},
+		{"return", "\r", true},
+		{"line feed", "\n", true},
+		{"tab", "\t", true},
+		{"mix", "\na\tbbb\n\n\n\t\t\n \t \n \r\nsjdk", true},
+		{"one", string(1), false},
+		{"bell", "\b", false},
+		{"bell in middle", "a\bc", false},
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
@@ -324,8 +328,15 @@ func TestUnPrintableButTextContents(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			if len(got) != 1 {
-				t.Errorf("len(%v) = %d, want 1", got, len(got))
+
+			if tc.want {
+				if len(got) != 1 {
+					t.Fatalf("len(%v) = %d, want 1", got, len(got))
+				}
+			} else {
+				if len(got) != 0 {
+					t.Errorf("len(%v) = %d, want 0", got, len(got))
+				}
 			}
 		})
 	}

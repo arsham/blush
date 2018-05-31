@@ -8,7 +8,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"unicode"
 )
 
 // Files returns all files found in paths. If recursive is false, it only
@@ -102,6 +101,7 @@ func files(location string) ([]string, error) {
 	return fileList, nil
 }
 
+// TODO: we should ignore the line in search stage instead.
 func isPlainText(name string) bool {
 	f, err := os.Open(name)
 	if err != nil {
@@ -113,15 +113,6 @@ func isPlainText(name string) bool {
 	if err != nil && err != io.EOF {
 		return false
 	}
-	for _, r := range string(header) {
-		// ignoring null, return, etc. which are acceptable in plain text files.
-		switch r {
-		case 0, '\n', '\t', '\r':
-			continue
-		}
-		if r > unicode.MaxASCII || !unicode.IsPrint(r) {
-			return false
-		}
-	}
-	return true
+
+	return IsPlainText(string(header))
 }
