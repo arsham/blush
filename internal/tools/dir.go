@@ -51,6 +51,9 @@ func unique(fileList []string) []string {
 func rfiles(location string) ([]string, error) {
 	fileList := []string{}
 	err := filepath.Walk(location, func(location string, f os.FileInfo, err error) error {
+		if os.IsPermission(err) {
+			return nil
+		}
 		if err != nil {
 			return err
 		}

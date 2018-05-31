@@ -56,6 +56,7 @@ func setup(count int) (dirs, expect []string, cleanup func(), err error) {
 			}
 			ret[path.Dir(f.Name())] = struct{}{}
 			expect = append(expect, f.Name())
+			f.WriteString("test")
 		}
 	}
 	for d := range ret {
@@ -177,5 +178,69 @@ func TestFilesRecursive(t *testing.T) {
 	}
 	if len(f) != 20 { // all files in `a`
 		t.Errorf("len(f) = %d, want %d: %v", len(f), 20, f)
+	}
+}
+
+func setupUnpermissioned(t *testing.T) (string, string, func()) {
+	// creates this structure:
+	// /tmp
+	//     /a <--- 0222 perm
+	//       /aaa.txt
+	//     /b <--- 0777 perm
+	//       /bbb.txt
+	rootDir, err := ioutil.TempDir("", "blush_dir")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dirA := path.Join(rootDir, "a")
+	dirB := path.Join(rootDir, "b")
+	dirs := []struct {
+		dir, file string
+	}{
+		{dirA, "aaa.txt"},
+		{dirB, "bbb.txt"},
+	}
+	for _, d := range dirs {
+		err = os.Mkdir(d.dir, 0777)
+		if err != nil {
+			t.Fatal(err)
+		}
+		name := path.Join(d.dir, d.file)
+		_, err = os.Create(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	err = os.Chmod(dirA, 0222)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fileB := path.Join(dirB, "bbb.txt")
+	return rootDir, fileB, func() {
+		err = os.Chmod(dirA, 0777)
+		if err != nil {
+			t.Error(err)
+		}
+		if err = os.RemoveAll(rootDir); err != nil {
+			t.Error(err)
+		}
+	}
+}
+
+func TestIgnoreNontPermissionedFolders(t *testing.T) {
+	rootDir, fileB, cleanup := setupUnpermissioned(t)
+	defer cleanup()
+	f, err := tools.Files(true, rootDir)
+	if err != nil {
+		t.Errorf("err = %v, want nil", err)
+	}
+	if f == nil {
+		t.Error("f = nil, want []string")
+	}
+	expect := []string{
+		fileB,
+	}
+	if !stringSliceEq(expect, f) {
+		t.Errorf("f = %v, want %v", f, expect)
 	}
 }

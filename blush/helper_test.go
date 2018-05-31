@@ -55,3 +55,12 @@ func setup(t *testing.T, input []testCase) ([]string, func()) {
 		}
 	}
 }
+
+func inStringSlice(niddle string, haystack []string) bool {
+	for _, s := range haystack {
+		if s == niddle {
+			return true
+		}
+	}
+	return false
+}
