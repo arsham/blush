@@ -58,7 +58,7 @@ func (b *Blush) WriteTo(w io.Writer) (int64, error) {
 	if b.Reader == nil {
 		return 0, ErrNoReader
 	}
-	return b.search(w), nil
+	return b.search(w)
 }
 
 // Close closes the reader and returns whatever error it returns.
@@ -67,7 +67,7 @@ func (b *Blush) Close() error {
 	return b.Reader.Close()
 }
 
-func (b *Blush) search(w io.Writer) int64 {
+func (b *Blush) search(w io.Writer) (int64, error) {
 	var total int
 	scanner := bufio.NewScanner(b.Reader)
 	scanner.Split(bufio.ScanLines)
@@ -95,10 +95,10 @@ func (b *Blush) search(w io.Writer) int64 {
 				}
 			}
 			if n, err := fmt.Fprintf(w, "%s%s\n", fileName, line); err != nil {
-				return int64(n)
+				return int64(n), err
 			}
 			total += len(line) + 1 // new-line is added here (\n above)
 		}
 	}
-	return int64(total)
+	return int64(total), nil
 }

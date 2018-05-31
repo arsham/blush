@@ -155,4 +155,3 @@ func (c *container) Read(b []byte) (int, error) {
 	}
 	return c.r.Read(b)
 }
-func (c *container) Close() error { return c.r.Close() }

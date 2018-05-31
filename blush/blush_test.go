@@ -11,19 +11,29 @@ import (
 	"testing"
 
 	"github.com/arsham/blush/blush"
+	"github.com/pkg/errors"
 )
 
 func TestWriteToErrors(t *testing.T) {
 	w := new(bytes.Buffer)
-	r := ioutil.NopCloser(new(bytes.Buffer))
+	e := errors.New("something")
+	nn := 10
+	bw := &badWriter{
+		writeFunc: func([]byte) (int, error) {
+			return nn, e
+		},
+	}
+	r := ioutil.NopCloser(bytes.NewBufferString("something"))
 	tcs := []struct {
-		name   string
-		b      *blush.Blush
-		writer io.Writer
-		errTxt string
+		name    string
+		b       *blush.Blush
+		writer  io.Writer
+		wantN   int
+		wantErr string
 	}{
-		{"no input", &blush.Blush{}, w, blush.ErrNoReader.Error()},
-		{"no writer", &blush.Blush{Reader: r}, nil, blush.ErrNoWriter.Error()},
+		{"no input", &blush.Blush{}, w, 0, blush.ErrNoReader.Error()},
+		{"no writer", &blush.Blush{Reader: r}, nil, 0, blush.ErrNoWriter.Error()},
+		{"bad writer", &blush.Blush{Reader: r, NoCut: true}, bw, nn, e.Error()},
 	}
 
 	for _, tc := range tcs {
@@ -33,11 +43,11 @@ func TestWriteToErrors(t *testing.T) {
 				t.Error("New(): err = nil, want error")
 				return
 			}
-			if n != 0 {
-				t.Errorf("l.WriteTo(): n = %d, want 0", n)
+			if int(n) != tc.wantN {
+				t.Errorf("l.WriteTo(): n = %d, want %d", n, tc.wantN)
 			}
-			if !strings.Contains(err.Error(), tc.errTxt) {
-				t.Errorf("want `%s` in `%s`", tc.errTxt, err.Error())
+			if !strings.Contains(err.Error(), tc.wantErr) {
+				t.Errorf("want `%s` in `%s`", tc.wantErr, err.Error())
 			}
 		})
 	}

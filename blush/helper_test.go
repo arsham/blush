@@ -28,6 +28,12 @@ type testCase struct {
 	content string
 }
 
+type badWriter struct {
+	writeFunc func([]byte) (int, error)
+}
+
+func (b *badWriter) Write(p []byte) (int, error) { return b.writeFunc(p) }
+
 func setup(t *testing.T, input []testCase) ([]string, func()) {
 	dir, err := ioutil.TempDir("", "blush_walker")
 	if err != nil {
