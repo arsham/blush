@@ -12,9 +12,10 @@ import (
 // Read() method is called in order. The reader is loaded lazily if it is a
 // file to prevent the system going out of file descriptors.
 type MultiReader struct {
-	readers []*container
-	current int
-	names   []string
+	readers     []*container
+	current     int
+	currentName string
+	names       []string
 }
 
 // NewMultiReader creates an instance of the MultiReader and passes it to all
@@ -49,6 +50,7 @@ func WithReader(name string, r io.ReadCloser) Conf {
 		}
 		c := &container{
 			get: func() (io.ReadCloser, error) {
+				m.currentName = name
 				return r, nil
 			},
 		}
@@ -78,6 +80,7 @@ func WithPaths(paths []string, recursive bool) Conf {
 			name := name
 			c := &container{
 				get: func() (io.ReadCloser, error) {
+					m.currentName = name
 					f, err := os.Open(name)
 					return f, err
 				},
@@ -120,18 +123,16 @@ func (m *MultiReader) Read(b []byte) (n int, err error) {
 			return
 		}
 	}
+	m.currentName = ""
 	return 0, io.EOF
 }
 
 // Close does nothing.
 func (m *MultiReader) Close() error { return nil }
 
-// String returns the current reader's name.
-func (m *MultiReader) String() string {
-	if m.current >= len(m.names) {
-		return ""
-	}
-	return m.names[m.current]
+// Name returns the current reader's name.
+func (m *MultiReader) Name() string {
+	return m.currentName
 }
 
 // container takes care of opening the reader on demand. This is particularly

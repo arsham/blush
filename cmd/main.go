@@ -43,8 +43,9 @@ func Main() {
 // The first argument will be dropped as it will be the application's name.
 func GetBlush(input []string) (*blush.Blush, error) {
 	var (
-		ok    bool
-		noCut bool
+		ok         bool
+		noCut      bool
+		noFileName bool
 	)
 	if len(input) == 1 {
 		return nil, ErrNoInput
@@ -61,9 +62,10 @@ func GetBlush(input []string) (*blush.Blush, error) {
 	}
 	finders := getFinders(remaining)
 	return &blush.Blush{
-		Finders: finders,
-		Reader:  r,
-		NoCut:   noCut,
+		Finders:      finders,
+		Reader:       r,
+		NoCut:        noCut,
+		WithFileName: !noFileName,
 	}, nil
 }
 

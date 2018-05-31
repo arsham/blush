@@ -8,15 +8,22 @@ import (
 	"sync"
 )
 
-// Blush reads from Reader and matches against all Finders. If NoCut is true,
-// any unmatched lines are printed as well.
-type Blush struct {
-	Finders []Finder
-	Reader  io.ReadCloser
-	NoCut   bool
-	closed  bool
+const (
+	// Separator string between name of the reader and the contents.
+	Separator = ": "
+)
 
-	once sync.Once
+// Blush reads from Reader and matches against all Finders. If NoCut is true,
+// any unmatched lines are printed as well. If WithFileName is true, blush will
+// write the filename before it writes the output.
+type Blush struct {
+	Finders      []Finder
+	Reader       io.ReadCloser
+	NoCut        bool
+	WithFileName bool
+	closed       bool
+
+	once sync.Once // used in Read() for loading everything in to the buffer.
 	buf  *bytes.Buffer
 }
 
@@ -80,10 +87,17 @@ func (b *Blush) search(w io.Writer) int64 {
 			line = foundStr
 		}
 		if foundStr != "" || b.NoCut {
-			if n, err := fmt.Fprintf(w, "%s\n", line); err != nil {
+			var fileName string
+			if b.WithFileName {
+				if o, ok := b.Reader.(*MultiReader); ok {
+					fileName = o.Name() + Separator
+					total += len(fileName)
+				}
+			}
+			if n, err := fmt.Fprintf(w, "%s%s\n", fileName, line); err != nil {
 				return int64(n)
 			}
-			total += len(line) + 1 // new-line of each line is added here
+			total += len(line) + 1 // new-line is added here (\n above)
 		}
 	}
 	return int64(total)

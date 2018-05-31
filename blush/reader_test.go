@@ -306,8 +306,8 @@ func TestMultiReaderNames(t *testing.T) {
 			if err != tc.wantErr {
 				t.Errorf("m.Read(): err = %v, want %v", err, tc.wantErr)
 			}
-			if m.String() != tc.name {
-				t.Errorf("m.String() = %s, want %s", m.String(), tc.name)
+			if m.Name() != tc.name {
+				t.Errorf("m.Name() = %s, want %s", m.Name(), tc.name)
 			}
 		})
 	}

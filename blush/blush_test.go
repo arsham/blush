@@ -493,3 +493,91 @@ func TestBlushReadLongOneLineText(t *testing.T) {
 		t.Errorf("b.Read(): err = %v, want %v", err, blush.ErrClosed)
 	}
 }
+
+func TestPrintName(t *testing.T) {
+	line1 := "line one\n"
+	line2 := "line two\n"
+	r1 := ioutil.NopCloser(bytes.NewBuffer([]byte(line1)))
+	r2 := ioutil.NopCloser(bytes.NewBuffer([]byte(line2)))
+	name1 := "reader1"
+	name2 := "reader2"
+	r, err := blush.NewMultiReader(
+		blush.WithReader(name1, r1),
+		blush.WithReader(name2, r2),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b := blush.Blush{
+		Reader:       r,
+		Finders:      []blush.Finder{blush.NewExact("line", blush.NoColour)},
+		WithFileName: true,
+	}
+	buf := new(bytes.Buffer)
+	n, err := b.WriteTo(buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	total := len(line1+line2+name1+name2) + len(blush.Separator)*2
+	if int(n) != total {
+		t.Errorf("total reads = %d, want %d", n, total)
+	}
+	s := strings.Split(buf.String(), "\n")
+	if !strings.Contains(s[0], name1) {
+		t.Errorf("want `%s` in `%s`", name1, s[0])
+	}
+	if !strings.Contains(s[1], name2) {
+		t.Fatalf("want `%s` in `%s`", name2, s[1])
+	}
+
+}
+
+func TestPrintFileName(t *testing.T) {
+	path, err := ioutil.TempDir("", "blush_name")
+	if err != nil {
+		t.Fatal(err)
+	}
+	f1, err := ioutil.TempFile(path, "blush_name")
+	if err != nil {
+		t.Fatal(err)
+	}
+	f2, err := ioutil.TempFile(path, "blush_name")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err = os.RemoveAll(path); err != nil {
+			t.Error(err)
+		}
+	}()
+	line1 := "line one\n"
+	line2 := "line two\n"
+	f1.WriteString(line1)
+	f2.WriteString(line2)
+	r, err := blush.NewMultiReader(
+		blush.WithPaths([]string{path}, false),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b := blush.Blush{
+		Reader:       r,
+		Finders:      []blush.Finder{blush.NewExact("line", blush.NoColour)},
+		WithFileName: true,
+	}
+	buf := new(bytes.Buffer)
+	n, err := b.WriteTo(buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	total := len(line1+line2+f1.Name()+f2.Name()) + len(blush.Separator)*2
+	if int(n) != total {
+		t.Errorf("total reads = %d, want %d", n, total)
+	}
+	if !strings.Contains(buf.String(), f1.Name()) {
+		t.Errorf("want `%s` in `%s`", f1.Name(), buf.String())
+	}
+	if !strings.Contains(buf.String(), f2.Name()) {
+		t.Errorf("want `%s` in `%s`", f2.Name(), buf.String())
+	}
+}
