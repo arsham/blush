@@ -8,12 +8,11 @@ import (
 
 var isRegExp = regexp.MustCompile(`[\^\$\.\{\}\[\]\*\?]`)
 
-// Finder finds texts based on a plain text or regexp logic. Any strings it
-// finds will be decorated with the given Colour. If the colour is zero, it
-// doesn't decorate and works as a regular grep.
+// Finder finds texts based on a plain text or regexp logic. If it doesn't find
+// any match, it will return an empty string. It might decorate the match with a
+// given instruction.
 type Finder interface {
 	Find(string) (string, bool)
-	Colour() Colour
 }
 
 // NewLocator returns a Rx object if search is a valid regexp, otherwise it
@@ -60,7 +59,8 @@ func NewExact(s string, c Colour) Exact {
 	}
 }
 
-// Find looks for the exact string.
+// Find looks for the exact string. Any strings it finds will be decorated with
+// the given Colour.
 func (e Exact) Find(input string) (string, bool) {
 	if strings.Contains(input, e.s) {
 		return e.colourise(input, e.colour), true
@@ -99,7 +99,8 @@ func NewIexact(s string, c Colour) Iexact {
 	}
 }
 
-// Find looks for the exact string.
+// Find looks for the exact string. Any strings it finds will be decorated with
+// the given Colour.
 func (i Iexact) Find(input string) (string, bool) {
 	if strings.Contains(strings.ToLower(input), strings.ToLower(i.s)) {
 		return i.colourise(input, i.colour), true
@@ -141,7 +142,8 @@ func NewRx(r *regexp.Regexp, c Colour) Rx {
 	}
 }
 
-// Find looks for the string matching `r` regular expression..
+// Find looks for the string matching `r` regular expression. Any strings it
+// finds will be decorated with the given Colour.
 func (r Rx) Find(input string) (string, bool) {
 	if r.MatchString(input) {
 		return r.colourise(input, r.colour), true

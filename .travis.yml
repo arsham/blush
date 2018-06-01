@@ -25,4 +25,5 @@ script:
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
+  - sed -i '/mode: atomic/d' ./coverage.txt
   - godacov -t $CODACY_PROJECT_TOKEN -r ./coverage.txt -c $TRAVIS_COMMIT

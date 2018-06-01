@@ -7,6 +7,10 @@ import (
 	"github.com/arsham/blush/blush"
 )
 
+type colourer interface {
+	Colour() blush.Colour
+}
+
 func TestNewLocatorColours(t *testing.T) {
 	tcs := []struct {
 		name   string
@@ -50,8 +54,12 @@ func TestNewLocatorColours(t *testing.T) {
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			l := blush.NewLocator(tc.colour, "aaa", false)
-			if l.Colour() != tc.want {
-				t.Errorf("%s: l.Colour() = %#v, want %#v", tc.colour, l.Colour(), tc.want)
+			c, ok := l.(colourer)
+			if !ok {
+				t.Fatalf("%v does not implement Colour() method", l)
+			}
+			if c.Colour() != tc.want {
+				t.Errorf("%s: c.Colour() = %#v, want %#v", tc.colour, c.Colour(), tc.want)
 			}
 		})
 	}
