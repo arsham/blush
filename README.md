@@ -37,15 +37,16 @@ $ cat FILENAME | blush "some text"
 ## Arguments
 
 ```
-+-------------+----------+------------------------------+
-|   Argument  | Shortcut |            Notes             |
-+-------------+----------+------------------------------+
-| --colour    | -C       | Colour, don't drop anything. |
-| N/A         | -i       | Case insensitive matching    |
-| N/A         | -R       | Recursive                    |
-| --no-colour | N/A      | Doesn't colourize matches.   |
-| --no-color  | N/A      | Same as --no-colour          |
-+-------------+----------+------------------------------+
++---------------+----------+------------------------------------------------+
+|    Argument   | Shortcut |                     Notes                      |
++---------------+----------+------------------------------------------------+
+| --colour      | -C       | Colour, don't drop anything.                   |
+| N/A           | -i       | Case insensitive matching                      |
+| N/A           | -R       | Recursive                                      |
+| --no-colour   | N/A      | Doesn't colourize matches.                     |
+| --no-color    | N/A      | Same as --no-colour                            |
+| --no-filename | -h       | Suppress the prefixing of file names on output |
++---------------+----------+------------------------------------------------+
 ```
 
 File names or paths are matched from the end. Any argument that doesn't match

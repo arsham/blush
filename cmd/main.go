@@ -54,11 +54,11 @@ func GetBlush(input []string) (*blush.Blush, error) {
 	if err != nil {
 		return nil, err
 	}
-	if remaining, ok = hasArg(remaining, "-C"); ok {
+	if remaining, ok = hasArg(remaining, "-C", "--colour"); ok {
 		noCut = true
 	}
-	if remaining, ok = hasArg(remaining, "--colour"); ok {
-		noCut = true
+	if remaining, ok = hasArg(remaining, "-h", "--no-filename"); ok {
+		noFileName = true
 	}
 	finders := getFinders(remaining)
 	return &blush.Blush{
@@ -185,12 +185,19 @@ func getFinders(input []string) []blush.Finder {
 	return ret
 }
 
-// hasArg removes the `arg` argument and returns the remaining []string.
-func hasArg(input []string, arg string) ([]string, bool) {
-	for i, a := range input {
-		if a == arg {
-			return append(input[:i], input[i+1:]...), true
+// hasArg removes any occurring `args` argument and returns the remaining.
+func hasArg(input []string, args ...string) (remains []string, found bool) {
+	remains = input[:]
+	for _, arg := range args {
+		for i, a := range input {
+			if a == arg {
+				remains = append(remains[:i], remains[i+1:]...)
+				found = true
+				if len(remains) == 0 {
+					return remains, found
+				}
+			}
 		}
 	}
-	return input, false
+	return remains, found
 }

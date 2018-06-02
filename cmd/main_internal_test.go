@@ -162,26 +162,29 @@ func TestFiles(t *testing.T) {
 func TestHasArgs(t *testing.T) {
 	tcs := []struct {
 		input  []string
-		arg    string
+		args   []string
 		want   []string
 		wantOk bool
 	}{
-		{[]string{}, "", []string{}, false},
-		{[]string{}, "a", []string{}, false},
-		{[]string{"a"}, "-a", []string{"a"}, false},
-		{[]string{"-a"}, "-a", []string{}, true},
-		{[]string{"-a", "-b"}, "-a", []string{"-b"}, true},
-		{[]string{"-a", "-c", "-b"}, "-c", []string{"-a", "-b"}, true},
-		{[]string{"-a", "-c", "-b"}, "-d", []string{"-a", "-c", "-b"}, false},
+		{[]string{}, []string{""}, []string{}, false},
+		{[]string{}, []string{"-a"}, []string{}, false},
+		{[]string{}, []string{"-a", "-a"}, []string{}, false},
+		{[]string{"a"}, []string{"-a"}, []string{"a"}, false},
+		{[]string{"a"}, []string{"-a", "-a"}, []string{"a"}, false},
+		{[]string{"-a"}, []string{"-a"}, []string{}, true},
+		{[]string{"-a"}, []string{"-a", "-a"}, []string{}, true},
+		{[]string{"-a", "-b"}, []string{"-a"}, []string{"-b"}, true},
+		{[]string{"-a", "-c", "-b"}, []string{"-c"}, []string{"-a", "-b"}, true},
+		{[]string{"-a", "-c", "-b"}, []string{"-d"}, []string{"-a", "-c", "-b"}, false},
 	}
 	for i, tc := range tcs {
 		t.Run(fmt.Sprintf("case_%d", i), func(t *testing.T) {
-			got, ok := hasArg(tc.input, tc.arg)
+			got, ok := hasArg(tc.input, tc.args...)
 			if !stringSliceEq(got, tc.want) {
-				t.Errorf("hasArg(%v, %s): got = %v, want %v", tc.input, tc.arg, got, tc.want)
+				t.Errorf("hasArg(%v, %s): got = %v, want %v", tc.input, tc.args, got, tc.want)
 			}
 			if ok != tc.wantOk {
-				t.Errorf("hasArg(%v, %s): ok = %v, want %v", tc.input, tc.arg, ok, tc.wantOk)
+				t.Errorf("hasArg(%v, %s): ok = %v, want %v", tc.input, tc.args, ok, tc.wantOk)
 			}
 		})
 	}

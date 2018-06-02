@@ -341,3 +341,38 @@ func TestUnPrintableButTextContents(t *testing.T) {
 		})
 	}
 }
+
+func TestFilesIgnoreDirs(t *testing.T) {
+	dir, err := ioutil.TempDir("", "blush_dir")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err = os.RemoveAll(dir); err != nil {
+			t.Error(err)
+		}
+	}()
+	path := path.Join(dir, "a")
+	err = os.MkdirAll(path, 0777)
+	if err != nil {
+		t.Fatal(err)
+	}
+	file, err := ioutil.TempFile(dir, "b")
+	if err != nil {
+		t.Fatal(err)
+	}
+	g, err := tools.Files(true, dir)
+	if err != nil {
+		t.Errorf("err = %v, want nil", err)
+	}
+	if g == nil {
+		t.Error("g = nil, want []string")
+	}
+
+	if inStringSlice(path, g) {
+		t.Errorf("didn't expect %v in %v", path, g)
+	}
+	if !inStringSlice(file.Name(), g) {
+		t.Errorf("want %v in %v", file.Name(), g)
+	}
+}

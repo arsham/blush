@@ -564,30 +564,46 @@ func TestPrintFileName(t *testing.T) {
 	line2 := "line two\n"
 	f1.WriteString(line1)
 	f2.WriteString(line2)
-	r, err := blush.NewMultiReader(
-		blush.WithPaths([]string{path}, false),
-	)
-	if err != nil {
-		t.Fatal(err)
+	tcs := []struct {
+		name          string
+		withFilename  bool
+		wantLen       int
+		wantFilenames bool
+	}{
+		{"with filename", true, len(line1+line2+f1.Name()+f2.Name()) + len(blush.Separator)*2, true},
+		{"without filename", false, len(line1 + line2), false},
 	}
-	b := blush.Blush{
-		Reader:       r,
-		Finders:      []blush.Finder{blush.NewExact("line", blush.NoColour)},
-		WithFileName: true,
-	}
-	buf := new(bytes.Buffer)
-	n, err := b.WriteTo(buf)
-	if err != nil {
-		t.Fatal(err)
-	}
-	total := len(line1+line2+f1.Name()+f2.Name()) + len(blush.Separator)*2
-	if int(n) != total {
-		t.Errorf("total reads = %d, want %d", n, total)
-	}
-	if !strings.Contains(buf.String(), f1.Name()) {
-		t.Errorf("want `%s` in `%s`", f1.Name(), buf.String())
-	}
-	if !strings.Contains(buf.String(), f2.Name()) {
-		t.Errorf("want `%s` in `%s`", f2.Name(), buf.String())
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			r, err := blush.NewMultiReader(
+				blush.WithPaths([]string{path}, false),
+			)
+			if err != nil {
+				t.Fatal(err)
+			}
+			b := blush.Blush{
+				Reader:       r,
+				Finders:      []blush.Finder{blush.NewExact("line", blush.NoColour)},
+				WithFileName: tc.withFilename,
+			}
+			buf := new(bytes.Buffer)
+			n, err := b.WriteTo(buf)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if int(n) != tc.wantLen {
+				t.Errorf("total reads = %d, want %d", n, tc.wantLen)
+			}
+			notStr := "not"
+			if tc.wantFilenames {
+				notStr = ""
+			}
+			if strings.Contains(buf.String(), f1.Name()) != tc.wantFilenames {
+				t.Errorf("want `%s` %s in `%s`", f1.Name(), notStr, buf.String())
+			}
+			if strings.Contains(buf.String(), f2.Name()) != tc.wantFilenames {
+				t.Errorf("want `%s` %s in `%s`", f2.Name(), notStr, buf.String())
+			}
+		})
 	}
 }
