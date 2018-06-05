@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"sync"
+
+	"github.com/pkg/errors"
 )
 
 const (
@@ -42,8 +44,10 @@ func (b *Blush) Read(p []byte) (n int, err error) {
 		}
 	})
 	if err != nil {
-		b.closed = true
-		return
+		if e := b.Close(); e != nil {
+			err = errors.Wrap(err, e.Error())
+		}
+		return 0, err
 	}
 	return b.buf.Read(p)
 }

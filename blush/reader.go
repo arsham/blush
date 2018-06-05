@@ -1,7 +1,6 @@
 package blush
 
 import (
-	"bytes"
 	"io"
 	"io/ioutil"
 	"os"
@@ -108,7 +107,7 @@ func (m *MultiReader) Read(b []byte) (n int, err error) {
 		n, err = m.readers[0].Read(b)
 		if err == io.EOF {
 			m.readers[0].r.Close()
-			c := &container{r: ioutil.NopCloser(new(bytes.Buffer))}
+			c := &container{r: ioutil.NopCloser(nil)}
 			m.readers[0] = c
 			m.readers = m.readers[1:]
 			m.current++
