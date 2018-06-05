@@ -75,30 +75,50 @@ func (b *Blush) search(w io.Writer) (int64, error) {
 	buf := make([]byte, max)
 	scanner.Buffer(buf, max)
 	for scanner.Scan() {
-		var foundStr string
 		line := scanner.Text()
-		for _, a := range b.Finders {
-			if s, ok := a.Find(line); ok {
-				line = s
-				foundStr = line
-			}
+		n, err := b.processLine(w, line)
+		if err != nil {
+			return int64(n), err
 		}
-		if foundStr != "" {
-			line = foundStr
-		}
-		if foundStr != "" || b.NoCut {
-			var fileName string
-			if b.WithFileName {
-				if o, ok := b.Reader.(*MultiReader); ok {
-					fileName = o.Name() + Separator
-					total += len(fileName)
-				}
-			}
-			if n, err := fmt.Fprintf(w, "%s%s\n", fileName, line); err != nil {
-				return int64(n), err
-			}
-			total += len(line) + 1 // new-line is added here (\n above)
-		}
+		total += n
 	}
 	return int64(total), nil
+}
+
+func (b *Blush) processLine(w io.Writer, line string) (int, error) {
+	var total int
+	str, ok := lookInto(b.Finders, line)
+	if ok || b.NoCut {
+		var prefix string
+		if b.WithFileName {
+			prefix = fileName(b.Reader)
+			total += len(prefix)
+		}
+		if n, err := fmt.Fprintf(w, "%s%s\n", prefix, str); err != nil {
+			return n, err
+		}
+		total += len(str) + 1 // new-line is added here (\n above)
+	}
+	return total, nil
+}
+
+// lookInto returns a new decorated line if any of the Finders decorate it, or
+// the given line as it is.
+func lookInto(f []Finder, line string) (string, bool) {
+	var found bool
+	for _, a := range f {
+		if s, ok := a.Find(line); ok {
+			line = s
+			found = true
+		}
+	}
+	return line, found
+}
+
+// fileName returns an empty string if it could not query the fileName from r.
+func fileName(r io.Reader) string {
+	if o, ok := r.(*MultiReader); ok {
+		return o.Name() + Separator
+	}
+	return ""
 }
