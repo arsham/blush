@@ -2,38 +2,86 @@ package blush
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 )
 
-// Some stock colours. There will be no colouring when NoColour is used.
+// BgLevel is the colour value of R, G, or B when the colour is shown in the
+// background.
+const BgLevel = 70
+
+// These are colour settings. NoRGB results in no colouring in the terminal.
 var (
-	NoColour  = Colour{-1, -1, -1}
-	FgRed     = Colour{255, 0, 0}
-	FgBlue    = Colour{0, 0, 255}
-	FgGreen   = Colour{0, 255, 0}
-	FgBlack   = Colour{0, 0, 0}
-	FgWhite   = Colour{255, 255, 255}
-	FgCyan    = Colour{0, 255, 255}
-	FgMagenta = Colour{255, 0, 255}
-	FgYellow  = Colour{255, 255, 0}
+	NoRGB     = RGB{-1, -1, -1}
+	FgRed     = RGB{255, 0, 0}
+	FgBlue    = RGB{0, 0, 255}
+	FgGreen   = RGB{0, 255, 0}
+	FgBlack   = RGB{0, 0, 0}
+	FgWhite   = RGB{255, 255, 255}
+	FgCyan    = RGB{0, 255, 255}
+	FgMagenta = RGB{255, 0, 255}
+	FgYellow  = RGB{255, 255, 0}
+	BgRed     = RGB{BgLevel, 0, 0}
+	BgBlue    = RGB{0, 0, BgLevel}
+	BgGreen   = RGB{0, BgLevel, 0}
+	BgBlack   = RGB{0, 0, 0}
+	BgWhite   = RGB{BgLevel, BgLevel, BgLevel}
+	BgCyan    = RGB{0, BgLevel, BgLevel}
+	BgMagenta = RGB{BgLevel, 0, BgLevel}
+	BgYellow  = RGB{BgLevel, BgLevel, 0}
 )
 
-// DefaultColour is foreground blue.
-var DefaultColour = FgBlue
+// Some stock colours. There will be no colouring when NoColour is used.
+var (
+	NoColour = Colour{NoRGB, NoRGB}
+	Red      = Colour{FgRed, NoRGB}
+	Blue     = Colour{FgBlue, NoRGB}
+	Green    = Colour{FgGreen, NoRGB}
+	Black    = Colour{FgBlack, NoRGB}
+	White    = Colour{FgWhite, NoRGB}
+	Cyan     = Colour{FgCyan, NoRGB}
+	Magenta  = Colour{FgMagenta, NoRGB}
+	Yellow   = Colour{FgYellow, NoRGB}
+)
 
-// Colour is a RGB colour scheme. R, G and B should be between 0 and 255.
-type Colour struct {
+//DefaultColour is the default colour if no colour is set via arguments.
+var DefaultColour = Blue
+
+// RGB represents colours that can be printed in terminals. R, G and B should be
+// between 0 and 255.
+type RGB struct {
 	R, G, B int
 }
 
-// Colourise wraps the input between colours defined in c for terminals.
-func Colourise(input string, c Colour) string {
-	return fmt.Sprintf("%s%s%s", format(c), input, unformat())
+// Colour is a pair of RGB colours for foreground and background.
+type Colour struct {
+	Foreground RGB
+	Background RGB
 }
 
-func format(c Colour) string {
+// Colourise wraps the input between colours.
+func Colourise(input string, c Colour) string {
+	if c.Background == NoRGB && c.Foreground == NoRGB {
+		return input
+	}
+
+	var fg, bg string
+	if c.Foreground != NoRGB {
+		fg = foreground(c.Foreground)
+	}
+	if c.Background != NoRGB {
+		bg = background(c.Background)
+	}
+	return fg + bg + input + unformat()
+}
+
+func foreground(c RGB) string {
 	return fmt.Sprintf("\033[38;5;%dm", colour(c.R, c.G, c.B))
+}
+
+func background(c RGB) string {
+	return fmt.Sprintf("\033[48;5;%dm", colour(c.R, c.G, c.B))
 }
 
 func unformat() string {
@@ -52,28 +100,62 @@ func colorFromArg(colour string) Colour {
 	if strings.HasPrefix(colour, "#") {
 		return hexColour(colour)
 	}
+	if grouping.MatchString(colour) {
+		if c := colourGroup(colour); c != NoColour {
+			return c
+		}
+	}
 	return stockColour(colour)
+}
+
+func colourGroup(colour string) Colour {
+	g := grouping.FindStringSubmatch(colour)
+	group, err := strconv.Atoi(g[2])
+	if err != nil {
+		return NoColour
+	}
+	c := stockColour(g[1])
+	mod := math.Mod(float64(group), 8.0)
+	switch int(mod) {
+	case 0:
+		c.Background = BgRed
+	case 1:
+		c.Background = BgBlue
+	case 2:
+		c.Background = BgGreen
+	case 3:
+		c.Background = BgBlack
+	case 4:
+		c.Background = BgWhite
+	case 5:
+		c.Background = BgCyan
+	case 6:
+		c.Background = BgMagenta
+	case 7:
+		c.Background = BgYellow
+	}
+	return c
 }
 
 func stockColour(colour string) Colour {
 	c := DefaultColour
 	switch colour {
 	case "r", "red":
-		c = FgRed
+		c = Red
 	case "b", "blue":
-		c = FgBlue
+		c = Blue
 	case "g", "green":
-		c = FgGreen
+		c = Green
 	case "bl", "black":
-		c = FgBlack
+		c = Black
 	case "w", "white":
-		c = FgWhite
+		c = White
 	case "cy", "cyan":
-		c = FgCyan
+		c = Cyan
 	case "mg", "magenta":
-		c = FgMagenta
+		c = Magenta
 	case "yl", "yellow":
-		c = FgYellow
+		c = Yellow
 	case "no-colour", "no-color":
 		c = NoColour
 	}
@@ -102,7 +184,7 @@ func hexColour(colour string) Colour {
 			return DefaultColour
 		}
 	}
-	return Colour{R: r, G: g, B: b}
+	return Colour{RGB{R: r, G: g, B: b}, NoRGB}
 }
 
 // getInt returns a number between 0-255 from a hex code. If the hex is not

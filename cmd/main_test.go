@@ -45,7 +45,7 @@ func TestPipeInput(t *testing.T) {
 }
 
 func TestMainMatch(t *testing.T) {
-	match := blush.Colourise("TOKEN", blush.FgBlue)
+	match := blush.Colourise("TOKEN", blush.Blue)
 	pwd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
@@ -145,10 +145,10 @@ func TestColourArgs(t *testing.T) {
 			blush.NewExact(aaa, blush.NoColour),
 		}},
 		{"1-colour", []string{"-b", "aaa", "/"}, []blush.Finder{
-			blush.NewExact(aaa, blush.FgBlue),
+			blush.NewExact(aaa, blush.Blue),
 		}},
 		{"1-colour long", []string{"--blue", "aaa", "/"}, []blush.Finder{
-			blush.NewExact(aaa, blush.FgBlue),
+			blush.NewExact(aaa, blush.Blue),
 		}},
 		{"2-default colour", []string{"aaa", "bbb", "/"}, []blush.Finder{
 			blush.NewExact(aaa, blush.DefaultColour),
@@ -163,44 +163,44 @@ func TestColourArgs(t *testing.T) {
 			blush.NewExact(bbb, blush.NoColour),
 		}},
 		{"2-colour", []string{"-b", "aaa", "bbb", "/"}, []blush.Finder{
-			blush.NewExact(aaa, blush.FgBlue),
-			blush.NewExact(bbb, blush.FgBlue),
+			blush.NewExact(aaa, blush.Blue),
+			blush.NewExact(bbb, blush.Blue),
 		}},
 		{"2-two colours", []string{"-b", "aaa", "-g", "bbb", "/"}, []blush.Finder{
-			blush.NewExact(aaa, blush.FgBlue),
-			blush.NewExact(bbb, blush.FgGreen),
+			blush.NewExact(aaa, blush.Blue),
+			blush.NewExact(bbb, blush.Green),
 		}},
 		{"red", []string{"-r", "aaa", "--red", "bbb", "/"}, []blush.Finder{
-			blush.NewExact(aaa, blush.FgRed),
-			blush.NewExact(bbb, blush.FgRed),
+			blush.NewExact(aaa, blush.Red),
+			blush.NewExact(bbb, blush.Red),
 		}},
 		{"green", []string{"-g", "aaa", "--green", "bbb", "/"}, []blush.Finder{
-			blush.NewExact(aaa, blush.FgGreen),
-			blush.NewExact(bbb, blush.FgGreen),
+			blush.NewExact(aaa, blush.Green),
+			blush.NewExact(bbb, blush.Green),
 		}},
 		{"blue", []string{"-b", "aaa", "--blue", "bbb", "/"}, []blush.Finder{
-			blush.NewExact(aaa, blush.FgBlue),
-			blush.NewExact(bbb, blush.FgBlue),
+			blush.NewExact(aaa, blush.Blue),
+			blush.NewExact(bbb, blush.Blue),
 		}},
 		{"white", []string{"-w", "aaa", "--white", "bbb", "/"}, []blush.Finder{
-			blush.NewExact(aaa, blush.FgWhite),
-			blush.NewExact(bbb, blush.FgWhite),
+			blush.NewExact(aaa, blush.White),
+			blush.NewExact(bbb, blush.White),
 		}},
 		{"black", []string{"-bl", "aaa", "--black", "bbb", "/"}, []blush.Finder{
-			blush.NewExact(aaa, blush.FgBlack),
-			blush.NewExact(bbb, blush.FgBlack),
+			blush.NewExact(aaa, blush.Black),
+			blush.NewExact(bbb, blush.Black),
 		}},
 		{"cyan", []string{"-cy", "aaa", "--cyan", "bbb", "/"}, []blush.Finder{
-			blush.NewExact(aaa, blush.FgCyan),
-			blush.NewExact(bbb, blush.FgCyan),
+			blush.NewExact(aaa, blush.Cyan),
+			blush.NewExact(bbb, blush.Cyan),
 		}},
 		{"magenta", []string{"-mg", "aaa", "--magenta", "bbb", "/"}, []blush.Finder{
-			blush.NewExact(aaa, blush.FgMagenta),
-			blush.NewExact(bbb, blush.FgMagenta),
+			blush.NewExact(aaa, blush.Magenta),
+			blush.NewExact(bbb, blush.Magenta),
 		}},
 		{"yellow", []string{"-yl", "aaa", "--yellow", "bbb", "/"}, []blush.Finder{
-			blush.NewExact(aaa, blush.FgYellow),
-			blush.NewExact(bbb, blush.FgYellow),
+			blush.NewExact(aaa, blush.Yellow),
+			blush.NewExact(bbb, blush.Yellow),
 		}},
 	}
 

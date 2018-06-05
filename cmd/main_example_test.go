@@ -17,7 +17,7 @@ func ExampleGetBlush_red() {
 	fmt.Println("err == nil:", err == nil)
 	fmt.Println("Finders count:", len(b.Finders))
 	c := b.Finders[0].(colourer)
-	fmt.Println("Is red:", c.Colour() == blush.FgRed)
+	fmt.Println("Is red:", c.Colour() == blush.Red)
 
 	// Output:
 	// err == nil: true
@@ -32,8 +32,8 @@ func ExampleGetBlush_multiColour() {
 	c2 := b.Finders[1].(colourer)
 	fmt.Println("err == nil:", err == nil)
 	fmt.Println("Finders count:", len(b.Finders))
-	fmt.Println("Is blue:", c1.Colour() == blush.FgBlue)
-	fmt.Println("Is green:", c2.Colour() == blush.FgGreen)
+	fmt.Println("Is blue:", c1.Colour() == blush.Blue)
+	fmt.Println("Is green:", c2.Colour() == blush.Green)
 
 	// Output:
 	// err == nil: true

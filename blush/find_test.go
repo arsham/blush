@@ -1,6 +1,7 @@
 package blush_test
 
 import (
+	"fmt"
 	"regexp"
 	"testing"
 
@@ -19,35 +20,35 @@ func TestNewLocatorColours(t *testing.T) {
 	}{
 		{"default", "", blush.DefaultColour},
 		{"garbage", "sdsds", blush.DefaultColour},
-		{"blue", "blue", blush.FgBlue},
-		{"blue short", "b", blush.FgBlue},
-		{"red", "red", blush.FgRed},
-		{"red short", "r", blush.FgRed},
-		{"blue", "blue", blush.FgBlue},
-		{"blue short", "b", blush.FgBlue},
-		{"green", "green", blush.FgGreen},
-		{"green short", "g", blush.FgGreen},
-		{"black", "black", blush.FgBlack},
-		{"black short", "bl", blush.FgBlack},
-		{"white", "white", blush.FgWhite},
-		{"white short", "w", blush.FgWhite},
-		{"cyan", "cyan", blush.FgCyan},
-		{"cyan short", "cy", blush.FgCyan},
-		{"magenta", "magenta", blush.FgMagenta},
-		{"magenta short", "mg", blush.FgMagenta},
-		{"yellow", "yellow", blush.FgYellow},
-		{"yellow short", "yl", blush.FgYellow},
+		{"blue", "blue", blush.Blue},
+		{"blue short", "b", blush.Blue},
+		{"red", "red", blush.Red},
+		{"red short", "r", blush.Red},
+		{"blue", "blue", blush.Blue},
+		{"blue short", "b", blush.Blue},
+		{"green", "green", blush.Green},
+		{"green short", "g", blush.Green},
+		{"black", "black", blush.Black},
+		{"black short", "bl", blush.Black},
+		{"white", "white", blush.White},
+		{"white short", "w", blush.White},
+		{"cyan", "cyan", blush.Cyan},
+		{"cyan short", "cy", blush.Cyan},
+		{"magenta", "magenta", blush.Magenta},
+		{"magenta short", "mg", blush.Magenta},
+		{"yellow", "yellow", blush.Yellow},
+		{"yellow short", "yl", blush.Yellow},
 		{"no colour", "no-colour", blush.NoColour},
 		{"no colour american", "no-color", blush.NoColour},
 
-		{"hash 000", "#000", blush.Colour{R: 0, G: 0, B: 0}},
-		{"hash 666", "#666", blush.Colour{R: 102, G: 102, B: 102}},
-		{"hash 000000", "#000000", blush.Colour{R: 0, G: 0, B: 0}},
-		{"hash 666666", "#666666", blush.Colour{R: 102, G: 102, B: 102}},
-		{"hash FFF", "#FFF", blush.Colour{R: 255, G: 255, B: 255}},
-		{"hash fff", "#fff", blush.Colour{R: 255, G: 255, B: 255}},
-		{"hash ffffff", "#ffffff", blush.Colour{R: 255, G: 255, B: 255}},
-		{"hash ababAB", "#ababAB", blush.Colour{R: 171, G: 171, B: 171}},
+		{"hash 000", "#000", blush.Colour{Foreground: blush.RGB{R: 0, G: 0, B: 0}, Background: blush.NoRGB}},
+		{"hash 666", "#666", blush.Colour{Foreground: blush.RGB{R: 102, G: 102, B: 102}, Background: blush.NoRGB}},
+		{"hash 000000", "#000000", blush.Colour{Foreground: blush.RGB{R: 0, G: 0, B: 0}, Background: blush.NoRGB}},
+		{"hash 666666", "#666666", blush.Colour{Foreground: blush.RGB{R: 102, G: 102, B: 102}, Background: blush.NoRGB}},
+		{"hash FFF", "#FFF", blush.Colour{Foreground: blush.RGB{R: 255, G: 255, B: 255}, Background: blush.NoRGB}},
+		{"hash fff", "#fff", blush.Colour{Foreground: blush.RGB{R: 255, G: 255, B: 255}, Background: blush.NoRGB}},
+		{"hash ffffff", "#ffffff", blush.Colour{Foreground: blush.RGB{R: 255, G: 255, B: 255}, Background: blush.NoRGB}},
+		{"hash ababAB", "#ababAB", blush.Colour{Foreground: blush.RGB{R: 171, G: 171, B: 171}, Background: blush.NoRGB}},
 		{"hash hhhhhh", "#hhhhhh", blush.DefaultColour},
 		{"hash aaaaaaa", "#aaaaaaa", blush.DefaultColour},
 	}
@@ -117,7 +118,7 @@ func TestNewLocatorRx(t *testing.T) {
 
 func TestNewLocatorRxColours(t *testing.T) {
 	rx := blush.NewLocator("b", "a{3}", false)
-	want := "this " + blush.Colourise("aaa", blush.FgBlue) + "meeting"
+	want := "this " + blush.Colourise("aaa", blush.Blue) + "meeting"
 	got, ok := rx.Find("this aaameeting")
 	if got != want {
 		t.Errorf("got = `%s`, want `%s`", got, want)
@@ -159,8 +160,8 @@ func TestExactFind(t *testing.T) {
 		{"exact no colour", "aaa", blush.NoColour, "aaa", "aaa", true},
 		{"exact not found", "aaaa", blush.NoColour, "aaa", "", false},
 		{"some parts no colour", "aaa", blush.NoColour, "bb aaa bb", "bb aaa bb", true},
-		{"exact blue", "aaa", blush.FgBlue, "aaa", blush.Colourise("aaa", blush.FgBlue), true},
-		{"some parts blue", "aaa", blush.FgBlue, "bb aaa bb", "bb " + blush.Colourise("aaa", blush.FgBlue) + " bb", true},
+		{"exact blue", "aaa", blush.Blue, "aaa", blush.Colourise("aaa", blush.Blue), true},
+		{"some parts blue", "aaa", blush.Blue, "bb aaa bb", "bb " + blush.Colourise("aaa", blush.Blue) + " bb", true},
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
@@ -209,8 +210,8 @@ func TestRxFind(t *testing.T) {
 		{"exact not found", "(^aa$)", blush.NoColour, "aaa", "", false},
 		{"some parts no colour", "(aaa)", blush.NoColour, "bb aaa bb", "bb aaa bb", true},
 		{"some parts not matched", "(Aaa)", blush.NoColour, "bb aaa bb", "", false},
-		{"exact blue", "(aaa)", blush.FgBlue, "aaa", blush.Colourise("aaa", blush.FgBlue), true},
-		{"some parts blue", "(aaa)", blush.FgBlue, "bb aaa bb", "bb " + blush.Colourise("aaa", blush.FgBlue) + " bb", true},
+		{"exact blue", "(aaa)", blush.Blue, "aaa", blush.Colourise("aaa", blush.Blue), true},
+		{"some parts blue", "(aaa)", blush.Blue, "bb aaa bb", "bb " + blush.Colourise("aaa", blush.Blue) + " bb", true},
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
@@ -254,10 +255,10 @@ func TestIexact(t *testing.T) {
 		{"i exact no colour", "AAA", blush.NoColour, "aaa", "aaa", true},
 		{"some parts no colour", "aaa", blush.NoColour, "bb aaa bb", "bb aaa bb", true},
 		{"i some parts no colour", "AAA", blush.NoColour, "bb aaa bb", "bb aaa bb", true},
-		{"exact blue", "aaa", blush.FgBlue, "aaa", blush.Colourise("aaa", blush.FgBlue), true},
-		{"i exact blue", "AAA", blush.FgBlue, "aaa", blush.Colourise("aaa", blush.FgBlue), true},
-		{"some parts blue", "aaa", blush.FgBlue, "bb aaa bb", "bb " + blush.Colourise("aaa", blush.FgBlue) + " bb", true},
-		{"i some parts blue", "AAA", blush.FgBlue, "bb aaa bb", "bb " + blush.Colourise("aaa", blush.FgBlue) + " bb", true},
+		{"exact blue", "aaa", blush.Blue, "aaa", blush.Colourise("aaa", blush.Blue), true},
+		{"i exact blue", "AAA", blush.Blue, "aaa", blush.Colourise("aaa", blush.Blue), true},
+		{"some parts blue", "aaa", blush.Blue, "bb aaa bb", "bb " + blush.Colourise("aaa", blush.Blue) + " bb", true},
+		{"i some parts blue", "AAA", blush.Blue, "bb aaa bb", "bb " + blush.Colourise("aaa", blush.Blue) + " bb", true},
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
@@ -288,10 +289,10 @@ func TestRxInsensitiveFind(t *testing.T) {
 		{"exact no colour", "^AAA$", "no-colour", "aaa", "aaa", true},
 		{"exact not found", "^AA$", "no-colour", "aaa", "", false},
 		{"some words no colour", `AAA*`, "no-colour", "bb aaa bb", "bb aaa bb", true},
-		{"exact blue", "^AAA$", "b", "aaa", blush.Colourise("aaa", blush.FgBlue), true},
+		{"exact blue", "^AAA$", "b", "aaa", blush.Colourise("aaa", blush.Blue), true},
 		{"default colour", "^AAA$", "", "aaa", blush.Colourise("aaa", blush.DefaultColour), true},
-		{"some words blue", "AAA?", "b", "bb aaa bb", "bb " + blush.Colourise("aaa", blush.FgBlue) + " bb", true},
-		{"some words blue long", "AAA?", "blue", "bb aaa bb", "bb " + blush.Colourise("aaa", blush.FgBlue) + " bb", true},
+		{"some words blue", "AAA?", "b", "bb aaa bb", "bb " + blush.Colourise("aaa", blush.Blue) + " bb", true},
+		{"some words blue long", "AAA?", "blue", "bb aaa bb", "bb " + blush.Colourise("aaa", blush.Blue) + " bb", true},
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
@@ -310,12 +311,61 @@ func TestRxInsensitiveFind(t *testing.T) {
 	}
 
 	rx := blush.NewLocator("b", "A{3}", true)
-	want := "this " + blush.Colourise("aaa", blush.FgBlue) + "meeting"
+	want := "this " + blush.Colourise("aaa", blush.Blue) + "meeting"
 	got, ok := rx.Find("this aaameeting")
 	if got != want {
 		t.Errorf("got = `%s`, want `%s`", got, want)
 	}
 	if !ok {
 		t.Error("ok = false, want true")
+	}
+}
+
+func TestColourGroup(t *testing.T) {
+	for i := 0; i < 100; i++ {
+		l := blush.NewLocator(fmt.Sprintf("b%d", i), "aaa", false)
+		e, ok := l.(blush.Exact)
+		if !ok {
+			t.Fatalf("fact check: l = %T, want blush.Exact", l)
+		}
+		if e.Colour().Foreground != blush.FgBlue {
+			t.Errorf("e.Colour().Foreground = %v, want %v", e.Colour().Foreground, blush.FgBlue)
+		}
+		if e.Colour().Background == blush.NoRGB {
+			t.Errorf("e.Colour().Background = %v, want a different RGB", e.Colour().Background)
+		}
+		if e.Colour().Foreground == e.Colour().Background {
+			t.Errorf("e.Colour().Foreground = %v, e.Colour().Background = %v: want a different colour", e.Colour().Foreground, e.Colour().Background)
+		}
+	}
+}
+
+func TestColourNewGroup(t *testing.T) {
+	var (
+		e  blush.Exact
+		ok bool
+	)
+	l := blush.NewLocator("b1", "aaa", false)
+	if e, ok = l.(blush.Exact); !ok {
+		t.Fatalf("fact check: l = %T, want blush.Exact", l)
+	}
+
+	c1 := e.Colour()
+	l = blush.NewLocator("b1", "aaa", false)
+	e = l.(blush.Exact)
+	if e.Colour() != c1 {
+		t.Errorf("e.Colour() = %v, want %v", e.Colour(), c1)
+	}
+
+	l = blush.NewLocator("b2", "aaa", false)
+	e = l.(blush.Exact)
+	if e.Colour().Foreground != blush.FgBlue {
+		t.Errorf("e.Colour().Foreground = %v, want %v", e.Colour().Foreground, blush.FgBlue)
+	}
+	if e.Colour() == c1 {
+		t.Errorf("e.Colour() = %v, want a different Colour", e.Colour())
+	}
+	if e.Colour().Background == c1.Background {
+		t.Errorf("e.Colour().Background = %v, c1.Background = %v, want a different Colour", e.Colour().Background, c1.Background)
 	}
 }

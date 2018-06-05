@@ -1,7 +1,9 @@
 package blush
 
 import (
+	"bytes"
 	"io"
+	"io/ioutil"
 	"os"
 
 	"github.com/arsham/blush/internal/tools"
@@ -92,11 +94,6 @@ func WithPaths(paths []string, recursive bool) Conf {
 	}
 }
 
-type eofReader struct{}
-
-func (eofReader) Read([]byte) (int, error) { return 0, io.EOF }
-func (eofReader) Close() error             { return nil }
-
 // Read is almost the exact implementation of io.MultiReader but keeps track of
 // reader names. It closes each reader once they report they are exhausted, and
 // it will happen on the next read.
@@ -111,7 +108,7 @@ func (m *MultiReader) Read(b []byte) (n int, err error) {
 		n, err = m.readers[0].Read(b)
 		if err == io.EOF {
 			m.readers[0].r.Close()
-			c := &container{r: eofReader{}}
+			c := &container{r: ioutil.NopCloser(new(bytes.Buffer))}
 			m.readers[0] = c
 			m.readers = m.readers[1:]
 			m.current++

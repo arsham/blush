@@ -6,7 +6,11 @@ import (
 	"strings"
 )
 
-var isRegExp = regexp.MustCompile(`[\^\$\.\{\}\[\]\*\?]`)
+var (
+	isRegExp = regexp.MustCompile(`[\^\$\.\{\}\[\]\*\?]`)
+	// grouping is used for matching colour groups (b1, etc.).
+	grouping = regexp.MustCompile("^([[:alpha:]]+)([[:digit:]]+)$")
+)
 
 // Finder finds texts based on a plain text or regexp logic. If it doesn't find
 // any match, it will return an empty string. It might decorate the match with a
@@ -155,8 +159,7 @@ func (r Rx) colourise(input string, c Colour) string {
 	if c == NoColour {
 		return input
 	}
-	repl := fmt.Sprintf("%s$1%s", format(c), unformat())
-	return r.ReplaceAllString(input, repl)
+	return r.ReplaceAllString(input, Colourise("$1", c))
 }
 
 // Colour returns the Colour property.

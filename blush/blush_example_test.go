@@ -10,7 +10,7 @@ import (
 )
 
 func ExampleBlush() {
-	f := blush.NewExact("sword", blush.FgRed)
+	f := blush.NewExact("sword", blush.Red)
 	r := bytes.NewBufferString("He who lives by the sword, will surely also die")
 	b := &blush.Blush{
 		Finders: []blush.Finder{f},
@@ -21,7 +21,7 @@ func ExampleBlush() {
 
 func ExampleBlush_Read() {
 	var p []byte
-	f := blush.NewExact("sin", blush.FgRed)
+	f := blush.NewExact("sin", blush.Red)
 	r := bytes.NewBufferString("He who lives in sin, will surely live the lie")
 	b := &blush.Blush{
 		Finders: []blush.Finder{f},
@@ -31,7 +31,7 @@ func ExampleBlush_Read() {
 }
 
 func ExampleBlush_Read_inDetails() {
-	f := blush.NewExact("sin", blush.FgRed)
+	f := blush.NewExact("sin", blush.Red)
 	r := bytes.NewBufferString("He who lives in sin, will surely live the lie")
 	b := &blush.Blush{
 		Finders: []blush.Finder{f},
@@ -57,7 +57,7 @@ func ExampleBlush_Read_inDetails() {
 }
 
 func ExampleBlush_WriteTo() {
-	f := blush.NewExact("victor", blush.FgRed)
+	f := blush.NewExact("victor", blush.Red)
 	r := bytes.NewBufferString("It is a shield of passion and strong will from this I am the victor instead of the kill\n")
 	b := &blush.Blush{
 		Finders: []blush.Finder{f},
@@ -78,7 +78,7 @@ func ExampleBlush_WriteTo() {
 }
 
 func ExampleBlush_WriteTo_copy() {
-	f := blush.NewExact("you feel", blush.FgCyan)
+	f := blush.NewExact("you feel", blush.Cyan)
 	r := bytes.NewBufferString("Savour what you feel and what you see\n")
 	b := &blush.Blush{
 		Finders: []blush.Finder{f},
@@ -99,8 +99,8 @@ func ExampleBlush_WriteTo_copy() {
 }
 
 func ExampleBlush_WriteTo_multiReader() {
-	mg := blush.NewExact("truth", blush.FgMagenta)
-	g := blush.NewExact("Life", blush.FgGreen)
+	mg := blush.NewExact("truth", blush.Magenta)
+	g := blush.NewExact("Life", blush.Green)
 	r1 := bytes.NewBufferString("Life is like a mystery with many clues, but with few answers\n")
 	r2 := bytes.NewBufferString("To tell us what it is that we can do to look for messages that keep us from the truth\n")
 	mr := io.MultiReader(r1, r2)
@@ -114,8 +114,8 @@ func ExampleBlush_WriteTo_multiReader() {
 }
 
 func ExampleBlush_WriteTo_multiReaderInDetails() {
-	mg := blush.NewExact("truth", blush.FgMagenta)
-	g := blush.NewExact("Life", blush.FgGreen)
+	mg := blush.NewExact("truth", blush.Magenta)
+	g := blush.NewExact("Life", blush.Green)
 	r1 := bytes.NewBufferString("Life is like a mystery with many clues, but with few answers\n")
 	r2 := bytes.NewBufferString("To tell us what it is that we can do to look for messages that keep us from the truth\n")
 	mr := io.MultiReader(r1, r2)

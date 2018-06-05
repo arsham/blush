@@ -119,7 +119,7 @@ func TestWriteToMatchNoColourPlain(t *testing.T) {
 }
 
 func TestWriteToMatchColour(t *testing.T) {
-	match := blush.Colourise("TOKEN", blush.FgBlue)
+	match := blush.Colourise("TOKEN", blush.Blue)
 	pwd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
@@ -131,7 +131,7 @@ func TestWriteToMatchColour(t *testing.T) {
 	}
 	b := &blush.Blush{
 		Reader:  r,
-		Finders: []blush.Finder{blush.NewExact("TOKEN", blush.FgBlue)},
+		Finders: []blush.Finder{blush.NewExact("TOKEN", blush.Blue)},
 	}
 
 	buf := new(bytes.Buffer)
@@ -182,10 +182,10 @@ func TestWriteToMatchCountColour(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			match := blush.Colourise(tc.name, blush.FgRed)
+			match := blush.Colourise(tc.name, blush.Red)
 			b := &blush.Blush{
 				Reader:  r,
-				Finders: []blush.Finder{blush.NewExact(tc.name, blush.FgRed)},
+				Finders: []blush.Finder{blush.NewExact(tc.name, blush.Red)},
 			}
 
 			buf := new(bytes.Buffer)
@@ -208,8 +208,8 @@ func TestWriteToMatchCountColour(t *testing.T) {
 }
 
 func TestWriteToMultiColour(t *testing.T) {
-	two := blush.Colourise("TWO", blush.FgMagenta)
-	three := blush.Colourise("THREE", blush.FgRed)
+	two := blush.Colourise("TWO", blush.Magenta)
+	three := blush.Colourise("THREE", blush.Red)
 	pwd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
@@ -222,8 +222,8 @@ func TestWriteToMultiColour(t *testing.T) {
 	b := &blush.Blush{
 		Reader: r,
 		Finders: []blush.Finder{
-			blush.NewExact("TWO", blush.FgMagenta),
-			blush.NewExact("THREE", blush.FgRed),
+			blush.NewExact("TWO", blush.Magenta),
+			blush.NewExact("THREE", blush.Red),
 		},
 	}
 
@@ -252,8 +252,8 @@ func TestWriteToMultiColour(t *testing.T) {
 }
 
 func TestWriteToMultiColourColourMode(t *testing.T) {
-	two := blush.Colourise("TWO", blush.FgMagenta)
-	three := blush.Colourise("THREE", blush.FgRed)
+	two := blush.Colourise("TWO", blush.Magenta)
+	three := blush.Colourise("THREE", blush.Red)
 	pwd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
@@ -267,8 +267,8 @@ func TestWriteToMultiColourColourMode(t *testing.T) {
 		Reader: r,
 		NoCut:  true,
 		Finders: []blush.Finder{
-			blush.NewExact("TWO", blush.FgMagenta),
-			blush.NewExact("THREE", blush.FgRed),
+			blush.NewExact("TWO", blush.Magenta),
+			blush.NewExact("THREE", blush.Red),
 		},
 	}
 
@@ -305,16 +305,16 @@ func TestWriteToMultipleMatchInOneLine(t *testing.T) {
 	r := ioutil.NopCloser(io.MultiReader(input1, input2))
 	match := fmt.Sprintf(
 		"someone %s find %s line",
-		blush.Colourise("should", blush.FgRed),
-		blush.Colourise("this", blush.FgMagenta),
+		blush.Colourise("should", blush.Red),
+		blush.Colourise("this", blush.Magenta),
 	)
 	out := new(bytes.Buffer)
 
 	b := &blush.Blush{
 		Reader: r,
 		Finders: []blush.Finder{
-			blush.NewExact("this", blush.FgMagenta),
-			blush.NewExact("should", blush.FgRed),
+			blush.NewExact("this", blush.Magenta),
+			blush.NewExact("should", blush.Red),
 		},
 	}
 
@@ -353,7 +353,7 @@ func TestBlushClosesReader(t *testing.T) {
 
 func TestBlushReadOneStream(t *testing.T) {
 	input := bytes.NewBuffer([]byte("one two three four"))
-	match := blush.NewExact("three", blush.FgBlue)
+	match := blush.NewExact("three", blush.Blue)
 	r := ioutil.NopCloser(input)
 	b := &blush.Blush{
 		Finders: []blush.Finder{match},
@@ -396,7 +396,7 @@ func TestBlushReadTwoStreams(t *testing.T) {
 	b2 := []byte("all for one\n")
 	input1 := bytes.NewBuffer(b1)
 	input2 := bytes.NewBuffer(b2)
-	match := blush.NewExact("one", blush.FgBlue)
+	match := blush.NewExact("one", blush.Blue)
 	r := ioutil.NopCloser(io.MultiReader(input1, input2))
 	b := &blush.Blush{
 		Finders: []blush.Finder{match},
@@ -427,7 +427,7 @@ func TestBlushReadHalfWay(t *testing.T) {
 	b2 := []byte("all for one\n")
 	input1 := bytes.NewBuffer(b1)
 	input2 := bytes.NewBuffer(b2)
-	match := blush.NewExact("one", blush.FgBlue)
+	match := blush.NewExact("one", blush.Blue)
 	r := ioutil.NopCloser(io.MultiReader(input1, input2))
 	b := &blush.Blush{
 		Finders: []blush.Finder{match},
@@ -452,7 +452,7 @@ func TestBlushReadOnClosed(t *testing.T) {
 	b2 := []byte("all for one\n")
 	input1 := bytes.NewBuffer(b1)
 	input2 := bytes.NewBuffer(b2)
-	match := blush.NewExact("one", blush.FgBlue)
+	match := blush.NewExact("one", blush.Blue)
 	r := ioutil.NopCloser(io.MultiReader(input1, input2))
 	b := &blush.Blush{
 		Finders: []blush.Finder{match},
@@ -480,7 +480,7 @@ func TestBlushReadLongOneLineText(t *testing.T) {
 	head := strings.Repeat("a", 10000)
 	tail := strings.Repeat("b", 10000)
 	input := bytes.NewBuffer([]byte(head + " FINDME " + tail))
-	match := blush.NewExact("FINDME", blush.FgBlue)
+	match := blush.NewExact("FINDME", blush.Blue)
 	r := ioutil.NopCloser(input)
 	b := &blush.Blush{
 		Finders: []blush.Finder{match},
