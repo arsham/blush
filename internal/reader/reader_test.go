@@ -1,4 +1,4 @@
-package blush_test
+package reader_test
 
 import (
 	"bytes"
@@ -8,11 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/arsham/blush/blush"
+	"github.com/arsham/blush/internal/reader"
 )
 
 func TestWithReader(t *testing.T) {
-	m, err := blush.NewMultiReader(blush.WithReader("name", nil))
+	m, err := reader.NewMultiReader(reader.WithReader("name", nil))
 	if err == nil {
 		t.Error("err = nil, want error")
 	}
@@ -21,7 +21,7 @@ func TestWithReader(t *testing.T) {
 	}
 
 	r := ioutil.NopCloser(new(bytes.Buffer))
-	m, err = blush.NewMultiReader(blush.WithReader("name", r))
+	m, err = reader.NewMultiReader(reader.WithReader("name", r))
 	if err != nil {
 		t.Errorf("err = %v, want nil", err)
 	}
@@ -29,7 +29,7 @@ func TestWithReader(t *testing.T) {
 		t.Error("m = nil, want *blush.MultiReader")
 	}
 
-	m, err = blush.NewMultiReader(blush.WithReader("", r))
+	m, err = reader.NewMultiReader(reader.WithReader("", r))
 	if err != nil {
 		t.Errorf("err = %v, want nil", err)
 	}
@@ -56,7 +56,7 @@ func TestWithReaderMultipleReadersClose(t *testing.T) {
 			return nil
 		},
 	}
-	m, err := blush.NewMultiReader(blush.WithReader("r1", r1), blush.WithReader("r2", r2))
+	m, err := reader.NewMultiReader(reader.WithReader("r1", r1), reader.WithReader("r2", r2))
 	if err != nil {
 		t.Errorf("err = %v, want nil", err)
 	}
@@ -99,7 +99,7 @@ func TestWithReaderMultipleReadersError(t *testing.T) {
 			return nil
 		},
 	}
-	m, err := blush.NewMultiReader(blush.WithReader("r", r), nil)
+	m, err := reader.NewMultiReader(reader.WithReader("r", r), nil)
 	if err == nil {
 		t.Error("err = nil, want error")
 	}
@@ -121,8 +121,8 @@ func TestWithPathsError(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			input := blush.WithPaths(tc.input, true)
-			m, err := blush.NewMultiReader(input)
+			input := reader.WithPaths(tc.input, true)
+			m, err := reader.NewMultiReader(input)
 			if err == nil {
 				t.Error("NewMultiReader(WithPaths): err = nil, want error")
 			}
@@ -147,7 +147,7 @@ func TestNewMultiReaderWithPaths(t *testing.T) {
 
 	dirs, cleanup := setup(t, input)
 	defer cleanup()
-	m, err := blush.NewMultiReader(blush.WithPaths(dirs, false))
+	m, err := reader.NewMultiReader(reader.WithPaths(dirs, false))
 	if err != nil {
 		t.Errorf("NewMultiReader(WithPaths(): err = %v, want nil", err)
 	}
@@ -162,7 +162,7 @@ func TestNewMultiReaderWithPaths(t *testing.T) {
 func TestMultiReaderReadOneReader(t *testing.T) {
 	input := "3wAgvZ4bSfQYawl5OEEg"
 	r := ioutil.NopCloser(bytes.NewBufferString(input))
-	m, err := blush.NewMultiReader(blush.WithReader("r", r))
+	m, err := reader.NewMultiReader(reader.WithReader("r", r))
 	if err != nil {
 		t.Errorf("err = %v, want nil", err)
 	}
@@ -193,7 +193,7 @@ func TestMultiReaderReadOneReader(t *testing.T) {
 func TestMultiReaderReadZeroBytes(t *testing.T) {
 	input := "3wAgvZ4bSfQYawl5OEEg"
 	r := ioutil.NopCloser(bytes.NewBufferString(input))
-	m, err := blush.NewMultiReader(blush.WithReader("r", r))
+	m, err := reader.NewMultiReader(reader.WithReader("r", r))
 	if err != nil {
 		t.Errorf("err = %v, want nil", err)
 	}
@@ -216,7 +216,7 @@ func TestMultiReaderReadZeroBytes(t *testing.T) {
 func TestMultiReaderReadOneReaderMoreSpace(t *testing.T) {
 	input := "3wAgvZ4bSfQYawl5OEEg"
 	r := ioutil.NopCloser(bytes.NewBufferString(input))
-	m, err := blush.NewMultiReader(blush.WithReader("r", r))
+	m, err := reader.NewMultiReader(reader.WithReader("r", r))
 	if err != nil {
 		t.Errorf("err = %v, want nil", err)
 	}
@@ -240,9 +240,9 @@ func TestMultiReaderReadMultipleReaders(t *testing.T) {
 	input := []string{"P5tyugWXFn", "b8YbUO7pMX3G8j4Bi"}
 	r1 := ioutil.NopCloser(bytes.NewBufferString(input[0]))
 	r2 := ioutil.NopCloser(bytes.NewBufferString(input[1]))
-	m, err := blush.NewMultiReader(
-		blush.WithReader("r1", r1),
-		blush.WithReader("r2", r2),
+	m, err := reader.NewMultiReader(
+		reader.WithReader("r1", r1),
+		reader.WithReader("r2", r2),
 	)
 	if err != nil {
 		t.Errorf("err = %v, want nil", err)
@@ -281,9 +281,9 @@ func TestMultiReaderNames(t *testing.T) {
 	input := []string{"Mw0mxekLYOpXaKl8PVT", "1V5MjHUXYTPChW"}
 	r1 := ioutil.NopCloser(bytes.NewBufferString(input[0]))
 	r2 := ioutil.NopCloser(bytes.NewBufferString(input[1]))
-	m, err := blush.NewMultiReader(
-		blush.WithReader("r1", r1),
-		blush.WithReader("r2", r2),
+	m, err := reader.NewMultiReader(
+		reader.WithReader("r1", r1),
+		reader.WithReader("r2", r2),
 	)
 	if err != nil {
 		t.Errorf("err = %v, want nil", err)
@@ -327,7 +327,7 @@ func TestNewMultiReaderWithPathsRead(t *testing.T) {
 
 	dirs, cleanup := setup(t, input)
 	defer cleanup()
-	w, err := blush.NewMultiReader(blush.WithPaths(dirs, false))
+	w, err := reader.NewMultiReader(reader.WithPaths(dirs, false))
 	if err != nil {
 		t.Fatalf("NewMultiReaderFromPaths(): err = %v, want nil", err)
 	}
@@ -366,7 +366,7 @@ func TestNewMultiReaderRecursive(t *testing.T) {
 	dirs, cleanup := setup(t, input)
 	defer cleanup()
 	base := path.Join(path.Dir(dirs[0]), "a")
-	w, err := blush.NewMultiReader(blush.WithPaths([]string{base}, true))
+	w, err := reader.NewMultiReader(reader.WithPaths([]string{base}, true))
 	if err != nil {
 		t.Fatalf("NewMultiReaderFromPaths(): err = %v, want nil - %v", err, base)
 	}
@@ -405,7 +405,7 @@ func TestNewMultiReaderNonRecursive(t *testing.T) {
 	dirs, cleanup := setup(t, input)
 	defer cleanup()
 	base := path.Join(path.Dir(dirs[0]), "a")
-	w, err := blush.NewMultiReader(blush.WithPaths([]string{base}, false))
+	w, err := reader.NewMultiReader(reader.WithPaths([]string{base}, false))
 	if err != nil {
 		t.Fatalf("NewMultiReaderFromPaths(): err = %v, want nil - %v", err, base)
 	}

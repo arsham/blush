@@ -7,6 +7,7 @@ import (
 	"io"
 	"sync"
 
+	"github.com/arsham/blush/internal/reader"
 	"github.com/pkg/errors"
 )
 
@@ -53,14 +54,13 @@ func (b *Blush) Read(p []byte) (n int, err error) {
 }
 
 // WriteTo writes matches to w. It returns an error if the writer is nil or
-// there are not paths defined or there is no files found in the Reader. Please
-// read documentations for ErrNoWriter.
+// there are not paths defined or there is no files found in the Reader.
 func (b *Blush) WriteTo(w io.Writer) (int64, error) {
 	if w == nil {
 		return 0, ErrNoWriter
 	}
 	if b.Reader == nil {
-		return 0, ErrNoReader
+		return 0, reader.ErrNoReader
 	}
 	return b.search(w)
 }
@@ -121,7 +121,10 @@ func lookInto(f []Finder, line string) (string, bool) {
 
 // fileName returns an empty string if it could not query the fileName from r.
 func fileName(r io.Reader) string {
-	if o, ok := r.(*MultiReader); ok {
+	type namer interface {
+		Name() string
+	}
+	if o, ok := r.(namer); ok {
 		return o.Name() + Separator
 	}
 	return ""

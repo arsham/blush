@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/arsham/blush/blush"
+	"github.com/arsham/blush/internal/reader"
 	"github.com/pkg/errors"
 )
 
@@ -31,7 +32,7 @@ func TestWriteToErrors(t *testing.T) {
 		wantN   int
 		wantErr string
 	}{
-		{"no input", &blush.Blush{}, w, 0, blush.ErrNoReader.Error()},
+		{"no input", &blush.Blush{}, w, 0, reader.ErrNoReader.Error()},
 		{"no writer", &blush.Blush{Reader: r}, nil, 0, blush.ErrNoWriter.Error()},
 		{"bad writer", &blush.Blush{Reader: r, NoCut: true}, bw, nn, e.Error()},
 	}
@@ -59,7 +60,7 @@ func TestWriteToNoMatch(t *testing.T) {
 		t.Fatal(err)
 	}
 	location := path.Join(pwd, "testdata")
-	r, err := blush.NewMultiReader(blush.WithPaths([]string{location}, true))
+	r, err := reader.NewMultiReader(reader.WithPaths([]string{location}, true))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +88,7 @@ func TestWriteToMatchNoColourPlain(t *testing.T) {
 		t.Fatal(err)
 	}
 	location := path.Join(pwd, "testdata")
-	r, err := blush.NewMultiReader(blush.WithPaths([]string{location}, true))
+	r, err := reader.NewMultiReader(reader.WithPaths([]string{location}, true))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -125,7 +126,7 @@ func TestWriteToMatchColour(t *testing.T) {
 		t.Fatal(err)
 	}
 	location := path.Join(pwd, "testdata")
-	r, err := blush.NewMultiReader(blush.WithPaths([]string{location}, true))
+	r, err := reader.NewMultiReader(reader.WithPaths([]string{location}, true))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -177,7 +178,7 @@ func TestWriteToMatchCountColour(t *testing.T) {
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			location := path.Join(pwd, "testdata")
-			r, err := blush.NewMultiReader(blush.WithPaths([]string{location}, tc.recursive))
+			r, err := reader.NewMultiReader(reader.WithPaths([]string{location}, tc.recursive))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -215,7 +216,7 @@ func TestWriteToMultiColour(t *testing.T) {
 		t.Fatal(err)
 	}
 	location := path.Join(pwd, "testdata")
-	r, err := blush.NewMultiReader(blush.WithPaths([]string{location}, true))
+	r, err := reader.NewMultiReader(reader.WithPaths([]string{location}, true))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -259,7 +260,7 @@ func TestWriteToMultiColourColourMode(t *testing.T) {
 		t.Fatal(err)
 	}
 	location := path.Join(pwd, "testdata")
-	r, err := blush.NewMultiReader(blush.WithPaths([]string{location}, true))
+	r, err := reader.NewMultiReader(reader.WithPaths([]string{location}, true))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -511,9 +512,9 @@ func TestPrintName(t *testing.T) {
 	r2 := ioutil.NopCloser(bytes.NewBuffer([]byte(line2)))
 	name1 := "reader1"
 	name2 := "reader2"
-	r, err := blush.NewMultiReader(
-		blush.WithReader(name1, r1),
-		blush.WithReader(name2, r2),
+	r, err := reader.NewMultiReader(
+		reader.WithReader(name1, r1),
+		reader.WithReader(name2, r2),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -575,8 +576,8 @@ func TestPrintFileName(t *testing.T) {
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			r, err := blush.NewMultiReader(
-				blush.WithPaths([]string{path}, false),
+			r, err := reader.NewMultiReader(
+				reader.WithPaths([]string{path}, false),
 			)
 			if err != nil {
 				t.Fatal(err)

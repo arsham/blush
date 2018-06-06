@@ -1,4 +1,4 @@
-package blush
+package reader
 
 import (
 	"io"
@@ -8,6 +8,9 @@ import (
 	"github.com/arsham/blush/internal/tools"
 	"github.com/pkg/errors"
 )
+
+// ErrNoReader is returned if there is no reader defined.
+var ErrNoReader = errors.New("no input")
 
 // MultiReader holds one or more io.ReadCloser and reads their contents when
 // Read() method is called in order. The reader is loaded lazily if it is a

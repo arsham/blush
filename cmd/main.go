@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/arsham/blush/blush"
+	"github.com/arsham/blush/internal/reader"
 )
 
 // FatalErr variables is provided to support the tests.
@@ -89,7 +90,7 @@ func getReader(input []string) (remaining []string, r io.ReadCloser, err error) 
 	if err != nil {
 		return nil, nil, err
 	}
-	w, err := blush.NewMultiReader(blush.WithPaths(p, recursive))
+	w, err := reader.NewMultiReader(reader.WithPaths(p, recursive))
 	if err != nil {
 		return nil, nil, err
 	}

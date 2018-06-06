@@ -19,15 +19,16 @@
 //
 // Arguments
 //
-//  +-------------+----------+------------------------------+
-//  |   Argument  | Shortcut |            Notes             |
-//  +-------------+----------+------------------------------+
-//  | --colour    | -C       | Colour, don't drop anything. |
-//  | N/A         | -i       | Case insensitive matching    |
-//  | N/A         | -R       | Recursive                    |
-//  | --no-colour | N/A      | Doesn't colourize matches.   |
-//  | --no-color  | N/A      | Same as --no-colour          |
-//  +-------------+----------+------------------------------+
+//  +---------------+----------+------------------------------------------------+
+//  |    Argument   | Shortcut |                     Notes                      |
+//  +---------------+----------+------------------------------------------------+
+//  | --colour      | -C       | Colour, don't drop anything.                   |
+//  | N/A           | -i       | Case insensitive matching                      |
+//  | N/A           | -R       | Recursive                                      |
+//  | --no-colour   | N/A      | Doesn't colourize matches.                     |
+//  | --no-color    | N/A      | Same as --no-colour                            |
+//  | --no-filename | -h       | Suppress the prefixing of file names on output |
+//  +---------------+----------+------------------------------------------------+
 //
 // File names or paths are matched from the end. Any argument that doesn't match
 // any files or paths are considered as regular expression. If regular
@@ -48,9 +49,9 @@
 //
 //  $ blush -b1 match1 -b2 match2 -b1 match3 FILENAME
 //
-// Both "match1" and "match3" will be shown with the same "random blue" colour,
-// while "match2" will be another random blue colour. This means the numbers will
-// create colour groups.
+// All matches will be shown as blue. But `match1` and `match3` will have a
+// different background colour than `match2`. This means the numbers will create
+// colour groups.
 //
 // You also can provide a colour with a series of grep requests:
 //
