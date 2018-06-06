@@ -93,6 +93,7 @@ func TestMainMatchNoCut(t *testing.T) {
 	}{
 		{"short", "-C"},
 		{"long", "--colour"},
+		{"long american", "--color"},
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {

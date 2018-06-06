@@ -17,9 +17,7 @@ var ErrNoReader = errors.New("no input")
 // file to prevent the system going out of file descriptors.
 type MultiReader struct {
 	readers     []*container
-	current     int
 	currentName string
-	names       []string
 }
 
 // NewMultiReader creates an instance of the MultiReader and passes it to all
@@ -27,7 +25,6 @@ type MultiReader struct {
 func NewMultiReader(input ...Conf) (*MultiReader, error) {
 	m := &MultiReader{
 		readers: make([]*container, 0),
-		names:   make([]string, 0),
 	}
 	for _, c := range input {
 		if c == nil {
@@ -59,7 +56,6 @@ func WithReader(name string, r io.ReadCloser) Conf {
 			},
 		}
 		m.readers = append(m.readers, c)
-		m.names = append(m.names, name)
 		return nil
 	}
 }
@@ -90,7 +86,6 @@ func WithPaths(paths []string, recursive bool) Conf {
 				},
 			}
 			m.readers = append(m.readers, c)
-			m.names = append(m.names, name)
 		}
 		return nil
 	}
@@ -113,7 +108,6 @@ func (m *MultiReader) Read(b []byte) (n int, err error) {
 			c := &container{r: ioutil.NopCloser(nil)}
 			m.readers[0] = c
 			m.readers = m.readers[1:]
-			m.current++
 		}
 		if n > 0 || err != io.EOF {
 			if err == io.EOF && len(m.readers) > 0 {

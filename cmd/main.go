@@ -12,27 +12,23 @@ import (
 	"github.com/arsham/blush/internal/reader"
 )
 
-// FatalErr variables is provided to support the tests.
-var FatalErr = func(s error) {
-	log.Fatal(s)
-}
-
 // Main reads the provided arguments from the command line and creates a
 // blush.Blush instance. It then uses io.Copy() to write to standard output.
 func Main() {
 	b, err := GetBlush(os.Args)
 	if err != nil {
-		FatalErr(err)
-		return
+		log.Fatal(err)
+		return // this return statement should be here to support tests.
 	}
 	defer func() {
 		if err := b.Close(); err != nil {
-			FatalErr(err)
+			log.Fatal(err)
 		}
 	}()
+	sig := make(chan os.Signal, 1)
+	WaitForSignal(sig, os.Exit)
 	if _, err := io.Copy(os.Stdout, b); err != nil {
-		FatalErr(err)
-		return
+		log.Fatal(err)
 	}
 }
 
@@ -55,7 +51,7 @@ func GetBlush(input []string) (*blush.Blush, error) {
 	if err != nil {
 		return nil, err
 	}
-	if remaining, ok = hasArg(remaining, "-C", "--colour"); ok {
+	if remaining, ok = hasArg(remaining, "-C", "--colour", "--color"); ok {
 		noCut = true
 	}
 	if remaining, ok = hasArg(remaining, "-h", "--no-filename"); ok {
@@ -77,8 +73,7 @@ func getReader(input []string) (remaining []string, r io.ReadCloser, err error) 
 		recursive bool
 		ok        bool
 	)
-	remaining, ok = hasArg(input, "-R")
-	if ok {
+	if remaining, ok = hasArg(input, "-R"); ok {
 		recursive = true
 	}
 	stat, _ := os.Stdin.Stat()

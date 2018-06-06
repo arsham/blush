@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/arsham/blush/blush"
-	"github.com/arsham/blush/cmd"
+	"github.com/bouk/monkey"
 )
 
 var leaveMeHere = "LEAVEMEHERE"
@@ -45,7 +46,6 @@ func setup(t *testing.T, args string) (stdout, stderr *stdFile, cleanup func()) 
 	oldArgs := os.Args
 	oldStdout := os.Stdout
 	oldStderr := os.Stderr
-	oldFatalErr := cmd.FatalErr
 
 	stdout, outCleanup := newStdFile(t, "stdout")
 	stderr, errCleanup := newStdFile(t, "stderr")
@@ -56,9 +56,10 @@ func setup(t *testing.T, args string) (stdout, stderr *stdFile, cleanup func()) 
 	if len(args) > 1 {
 		os.Args = append(os.Args, strings.Split(args, " ")...)
 	}
-	cmd.FatalErr = func(s error) {
-		fmt.Fprintf(os.Stderr, "%s\n", s)
+	logFatalErr := func(msg ...interface{}) {
+		fmt.Fprintln(os.Stderr, msg)
 	}
+	patch := monkey.Patch(log.Fatal, logFatalErr)
 
 	cleanup = func() {
 		outCleanup()
@@ -66,7 +67,7 @@ func setup(t *testing.T, args string) (stdout, stderr *stdFile, cleanup func()) 
 		os.Args = oldArgs
 		os.Stdout = oldStdout
 		os.Stderr = oldStderr
-		cmd.FatalErr = oldFatalErr
+		patch.Unpatch()
 	}
 	return stdout, stderr, cleanup
 }
