@@ -1,6 +1,8 @@
 hash: 42a2e706d08ac586e71d802b276f3a5aa3b5658c9a24c605f87d52f54464ca97
-updated: 2018-06-06T20:51:25.454187017+01:00
+updated: 2018-06-06T23:22:46.224079992+01:00
 imports:
+- name: github.com/bouk/monkey
+  version: 5df1f207ff77e025801505ae4d903133a0b4353f
 - name: github.com/pkg/errors
   version: 816c9085562cd7ee03e7f8188a1cfd942858cded
 testImports: []
