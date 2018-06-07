@@ -2,7 +2,6 @@ package blush
 
 import (
 	"fmt"
-	"math"
 	"strconv"
 	"strings"
 )
@@ -115,8 +114,7 @@ func colourGroup(colour string) Colour {
 		return NoColour
 	}
 	c := stockColour(g[1])
-	mod := math.Mod(float64(group), 8.0)
-	switch int(mod) {
+	switch group % 8 {
 	case 0:
 		c.Background = BgRed
 	case 1:
