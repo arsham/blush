@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -16,8 +17,13 @@ import (
 // blush.Blush instance. It then uses io.Copy() to write to standard output.
 func Main() {
 	b, err := GetBlush(os.Args)
-	if err != nil {
-		log.Fatal(err)
+	switch err {
+	case nil:
+	case errShowHelp:
+		fmt.Println(Usage)
+		return
+	default:
+		log.Fatalf("%s\n%s", err, Help)
 		return // this return statement should be here to support tests.
 	}
 	defer func() {
@@ -43,11 +49,18 @@ func GetBlush(input []string) (*blush.Blush, error) {
 		ok         bool
 		noCut      bool
 		noFileName bool
+		remaining  []string
+		err        error
+		r          io.ReadCloser
 	)
 	if len(input) == 1 {
 		return nil, ErrNoInput
 	}
-	remaining, r, err := getReader(input[1:])
+	if remaining, ok = hasArg(input[1:], "--help"); ok {
+		return nil, errShowHelp
+	}
+
+	remaining, r, err = getReader(remaining)
 	if err != nil {
 		return nil, err
 	}

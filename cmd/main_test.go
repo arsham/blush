@@ -21,6 +21,21 @@ func TestMainNoArgs(t *testing.T) {
 	if !strings.Contains(stderr.String(), cmd.ErrNoInput.Error()) {
 		t.Errorf("stderr = `%s`, want `%s` in it", stderr.String(), cmd.ErrNoInput.Error())
 	}
+	if !strings.Contains(stderr.String(), cmd.Help) {
+		t.Errorf("stderr = `%s`, want `%s` in it", stderr.String(), cmd.Help)
+	}
+}
+
+func TestMainHelp(t *testing.T) {
+	stdout, stderr, cleanup := setup(t, "--help")
+	defer cleanup()
+	cmd.Main()
+	if len(stderr.String()) > 0 {
+		t.Errorf("didn't expect any stderr, got: %s", stderr.String())
+	}
+	if !strings.Contains(stdout.String(), cmd.Usage) {
+		t.Errorf("stdout = `%s`, want `%s` in it", stdout.String(), cmd.Usage)
+	}
 }
 
 func TestPipeInput(t *testing.T) {

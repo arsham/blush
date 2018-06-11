@@ -56,10 +56,12 @@ func setup(t *testing.T, args string) (stdout, stderr *stdFile, cleanup func()) 
 	if len(args) > 1 {
 		os.Args = append(os.Args, strings.Split(args, " ")...)
 	}
-	logFatalErr := func(msg ...interface{}) {
+	fatalPatch := monkey.Patch(log.Fatal, func(msg ...interface{}) {
 		fmt.Fprintln(os.Stderr, msg)
-	}
-	patch := monkey.Patch(log.Fatal, logFatalErr)
+	})
+	fatalfPatch := monkey.Patch(log.Fatalf, func(format string, v ...interface{}) {
+		fmt.Fprintf(os.Stderr, format, v...)
+	})
 
 	cleanup = func() {
 		outCleanup()
@@ -67,7 +69,8 @@ func setup(t *testing.T, args string) (stdout, stderr *stdFile, cleanup func()) 
 		os.Args = oldArgs
 		os.Stdout = oldStdout
 		os.Stderr = oldStderr
-		patch.Unpatch()
+		fatalPatch.Unpatch()
+		fatalfPatch.Unpatch()
 	}
 	return stdout, stderr, cleanup
 }

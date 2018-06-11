@@ -97,7 +97,7 @@ are not followed by colouring arguments are coloured based on previously
 provided colour:
 
 ```bash
-$ blush -b match1 match3 FILENAME
+$ blush -b match1 match2 FILENAME
 ```
 
 ![Colored](http://i.imgur.com/J6uZPQD.png)
