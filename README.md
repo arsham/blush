@@ -11,17 +11,41 @@ With Blush, you can grep with any colours of your choice.
 
 ![Colored](http://i.imgur.com/RF19HYU.png)
 
-1. [Usage](#usage)
+1. [Install](#install)
+    * [Update](#update)
+2. [Usage](#usage)
     * [Match Method](#match-method)
     * [Colouring Method](#colouring-method)
     * [Piping](#piping)
-2. [Arguments](#arguments)
+3. [Arguments](#arguments)
     * [Notes](#notes)
-3. [Colour Groups](#colour-groups)
-4. [Colours](#colours)
-5. [Complex Grep](#complex-grep)
-6. [Suggestions](#suggestions)
-7. [License](#license)
+4. [Colour Groups](#colour-groups)
+5. [Colours](#colours)
+6. [Complex Grep](#complex-grep)
+7. [Suggestions](#suggestions)
+8. [License](#license)
+
+## Install
+
+You can grab a binary from [releases](https://github.com/arsham/blush/releases)
+page. If you prefer to install it manually you can get the code and install it
+with the following command:
+
+```bash
+$ go get github.com/arsham/blush
+```
+
+Make sure you have `go` installed.
+
+### Update
+
+In order to update the program:
+
+```bash
+$ cd $GOPATH/src/github.com/arsham/blush
+$ make update
+$ make install
+```
 
 ## Usage
 
