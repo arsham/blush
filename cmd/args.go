@@ -9,6 +9,9 @@ import (
 	"github.com/arsham/blush/blush"
 )
 
+// Note that hasArgs, setFinders and setPaths methods of args are designed to
+// shrink the input as they go. Therefore the order of calls matters in some
+// cases.
 type args struct {
 	colour      bool
 	noFilename  bool
@@ -26,28 +29,25 @@ func newArgs(input ...string) (*args, error) {
 		matches:   make([]string, 0),
 		remaining: input,
 	}
-	if a.hasArg("--help") {
+	if a.hasArgs("--help") {
 		return nil, errShowHelp
 	}
-	a.recursive = a.hasArg("-R")
-	a.colour = a.hasArg("-C", "--colour", "--color")
-	a.noFilename = a.hasArg("-h", "--no-filename")
-	a.insensitive = a.hasArg("-i")
+	a.recursive = a.hasArgs("-R")
+	a.colour = a.hasArgs("-C", "--colour", "--color")
+	a.noFilename = a.hasArgs("-h", "--no-filename")
+	a.insensitive = a.hasArgs("-i")
 
 	if stat, _ := os.Stdin.Stat(); (stat.Mode() & os.ModeCharDevice) == 0 {
-		a.setFinders()
 		a.stdin = true
-		return a, nil
-	}
-	if err := a.setPaths(); err != nil {
+	} else if err := a.setPaths(); err != nil {
 		return nil, err
 	}
 	a.setFinders()
 	return a, nil
 }
 
-// hasArg removes any occurring `args` argument and returns the remaining.
-func (a *args) hasArg(args ...string) (found bool) {
+// hasArgs removes any occurring `args` argument.
+func (a *args) hasArgs(args ...string) (found bool) {
 	remains := a.remaining[:]
 LOOP:
 	for _, arg := range args {
@@ -66,7 +66,7 @@ LOOP:
 }
 
 // setPaths starts from the end of the slice and removes any paths/globs/files
-// it finds and returns them in p.
+// it finds and put them in the paths property.
 func (a *args) setPaths() error {
 	var (
 		foundOne bool

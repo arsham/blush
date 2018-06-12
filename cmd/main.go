@@ -11,7 +11,7 @@ import (
 )
 
 // Main reads the provided arguments from the command line and creates a
-// blush.Blush instance. It then uses io.Copy() to write to standard output.
+// blush.Blush instance.
 func Main() {
 	b, err := GetBlush(os.Args)
 	switch err {

@@ -168,7 +168,7 @@ func TestArgsHasArgs(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			ok := a.hasArg(tc.args...)
+			ok := a.hasArgs(tc.args...)
 			if !stringSliceEq(a.remaining, tc.want) {
 				t.Errorf("a.hasArg(%v, %s): a.remaining = %v, want %v", tc.input, tc.args, a.remaining, tc.want)
 			}
