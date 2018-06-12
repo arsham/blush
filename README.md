@@ -116,7 +116,7 @@ You can provide a number for a colour argument to create a colour group:
 $ blush -r1 match1 -r2 match2 -r1 match3 FILENAME
 ```
 
-![Colored](http://i.imgur.com/7diBqyh.png)
+![Colored](http://i.imgur.com/cBnyrcy.png)
 
 All matches will be shown as blue. But `match1` and `match3` will have a
 different background colour than `match2`. This means the numbers will create

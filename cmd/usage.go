@@ -30,7 +30,6 @@ Stock Colours:
     -mg, --magenta
     -cy, --cyan
 
-
 Control arguments:
     -C, --colour            Don't drop unmatched lines.
     -i                      Case insensitive match.
