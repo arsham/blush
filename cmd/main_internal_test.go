@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -31,38 +30,6 @@ func getPipe(t *testing.T) (*os.File, func()) {
 	return file, func() {
 		os.Stdin = oldStdin
 		rmFile()
-	}
-}
-
-func TestGetReaderPipe(t *testing.T) {
-	pipe, cleanup := getPipe(t)
-	defer cleanup()
-	_, r, err := getReader(nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if r != pipe {
-		t.Errorf("r = %v, want %v", r, pipe)
-	}
-}
-
-func TestGetReaderNoFiles(t *testing.T) {
-	_, r, err := getReader([]string{"/nomansland"})
-	if err == nil {
-		t.Error("err = nil, want error")
-	}
-	if r != nil {
-		t.Errorf("r = %v, want nil", r)
-	}
-}
-
-func TestGetReaderNewMultiReaderFromPathsError(t *testing.T) {
-	_, r, err := getReader([]string{""})
-	if err == nil {
-		t.Error("err = nil, want error")
-	}
-	if r != nil {
-		t.Errorf("r = %v, want nil", r)
 	}
 }
 
@@ -142,49 +109,18 @@ func TestFiles(t *testing.T) {
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			remaining, p, err := paths(tc.input)
+			a, err := newArgs(tc.input...)
 			if tc.wantErr {
 				if err == nil {
 					t.Error("err = nil, want error")
 				}
 				return
 			}
-			if !stringSliceEq(remaining, tc.wantRemaining) {
-				t.Errorf("files(%v): remaining = %v, want %v", tc.input, remaining, tc.wantRemaining)
+			if !stringSliceEq(a.remaining, tc.wantRemaining) {
+				t.Errorf("files(%v): a.remaining = %v, want %v", tc.input, a.remaining, tc.wantRemaining)
 			}
-			if !stringSliceEq(p, tc.wantP) {
-				t.Errorf("files(%v): p = %v, want %v", tc.input, p, tc.wantP)
-			}
-		})
-	}
-}
-
-func TestHasArgs(t *testing.T) {
-	tcs := []struct {
-		input  []string
-		args   []string
-		want   []string
-		wantOk bool
-	}{
-		{[]string{}, []string{""}, []string{}, false},
-		{[]string{}, []string{"-a"}, []string{}, false},
-		{[]string{}, []string{"-a", "-a"}, []string{}, false},
-		{[]string{"a"}, []string{"-a"}, []string{"a"}, false},
-		{[]string{"a"}, []string{"-a", "-a"}, []string{"a"}, false},
-		{[]string{"-a"}, []string{"-a"}, []string{}, true},
-		{[]string{"-a"}, []string{"-a", "-a"}, []string{}, true},
-		{[]string{"-a", "-b"}, []string{"-a"}, []string{"-b"}, true},
-		{[]string{"-a", "-c", "-b"}, []string{"-c"}, []string{"-a", "-b"}, true},
-		{[]string{"-a", "-c", "-b"}, []string{"-d"}, []string{"-a", "-c", "-b"}, false},
-	}
-	for i, tc := range tcs {
-		t.Run(fmt.Sprintf("case_%d", i), func(t *testing.T) {
-			got, ok := hasArg(tc.input, tc.args...)
-			if !stringSliceEq(got, tc.want) {
-				t.Errorf("hasArg(%v, %s): got = %v, want %v", tc.input, tc.args, got, tc.want)
-			}
-			if ok != tc.wantOk {
-				t.Errorf("hasArg(%v, %s): ok = %v, want %v", tc.input, tc.args, ok, tc.wantOk)
+			if !stringSliceEq(a.paths, tc.wantP) {
+				t.Errorf("files(%v): a.paths = %v, want %v", tc.input, a.paths, tc.wantP)
 			}
 		})
 	}
