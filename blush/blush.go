@@ -2,13 +2,11 @@ package blush
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"io"
 	"sync"
 
 	"github.com/arsham/blush/internal/reader"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -26,84 +24,113 @@ type Blush struct {
 	WithFileName bool
 	closed       bool
 
-	once sync.Once // used in Read() for loading everything in to the buffer.
-	buf  *bytes.Buffer
+	oncePrepare  sync.Once
+	onceTransfer sync.Once
+	scanner      *bufio.Reader
+	readLineCh   chan []byte
+	readCh       chan byte
 }
 
-// Read will search the whole tree and keeps the results in a buffer and uses
-// the buffer to write to p. Any error that happens during the construction of
-// this buffer will be returned immediately and closes the object for further
-// reads.
+// Read creates a goroutine on first invocation to read from the underlying
+// reader. It is considerably slower than WriteTo as it reads the bytes one by
+// one in order to produce the results, therefore you should use WriteTo
+// directly or use io.Copy() on blush.
 func (b *Blush) Read(p []byte) (n int, err error) {
 	if b.closed {
 		return 0, ErrClosed
 	}
-	b.once.Do(func() {
-		b.buf = new(bytes.Buffer)
-		if _, er := b.WriteTo(b.buf); er != nil {
-			err = er
-		}
+	b.oncePrepare.Do(func() {
+		err = b.prepare()
 	})
-	if err != nil {
-		if e := b.Close(); e != nil {
-			err = errors.Wrap(err, e.Error())
+	b.onceTransfer.Do(func() {
+		go b.transfer()
+	})
+	for n = 0; n < cap(p); n++ {
+		select {
+		case c, ok := <-b.readCh:
+			if !ok {
+				return n, io.EOF
+			}
+			p[n] = c
 		}
-		return 0, err
 	}
-	return b.buf.Read(p)
+	return n, err
 }
 
 // WriteTo writes matches to w. It returns an error if the writer is nil or
 // there are not paths defined or there is no files found in the Reader.
 func (b *Blush) WriteTo(w io.Writer) (int64, error) {
+	if b.closed {
+		return 0, ErrClosed
+	}
+	b.oncePrepare.Do(func() {
+		b.prepare()
+	})
+	var total int
 	if w == nil {
 		return 0, ErrNoWriter
 	}
 	if b.Reader == nil {
 		return 0, reader.ErrNoReader
 	}
-	return b.search(w)
+	for line := range b.readLineCh {
+		if n, err := fmt.Fprintf(w, "%s", line); err != nil {
+			return int64(n), err
+		}
+		total += len(line)
+	}
+	return int64(total), nil
+}
+
+func (b *Blush) prepare() error {
+	if b.Reader == nil {
+		return reader.ErrNoReader
+	}
+	b.scanner = bufio.NewReader(b.Reader)
+	b.readLineCh = make(chan []byte, 50)
+	b.readCh = make(chan byte, 1000)
+	go b.readLines()
+	return nil
+}
+
+func (b *Blush) decorate(input string) (string, bool) {
+	str, ok := lookInto(b.Finders, input)
+	if ok || b.NoCut {
+		var prefix string
+		if b.WithFileName {
+			prefix = fileName(b.Reader)
+		}
+		return prefix + str, true
+	}
+	return "", false
+}
+
+func (b *Blush) readLines() {
+	for {
+		line, err := b.scanner.ReadString('\n')
+		if line, ok := b.decorate(line); ok {
+			b.readLineCh <- []byte(line)
+		}
+		if err != nil {
+			break
+		}
+	}
+	close(b.readLineCh)
+}
+
+func (b *Blush) transfer() {
+	for line := range b.readLineCh {
+		for _, c := range line {
+			b.readCh <- c
+		}
+	}
+	close(b.readCh)
 }
 
 // Close closes the reader and returns whatever error it returns.
 func (b *Blush) Close() error {
 	b.closed = true
 	return b.Reader.Close()
-}
-
-func (b *Blush) search(w io.Writer) (int64, error) {
-	var total int
-	scanner := bufio.NewScanner(b.Reader)
-	scanner.Split(bufio.ScanLines)
-	max := bufio.MaxScanTokenSize * 120
-	buf := make([]byte, max)
-	scanner.Buffer(buf, max)
-	for scanner.Scan() {
-		line := scanner.Text()
-		n, err := b.processLine(w, line)
-		if err != nil {
-			return int64(n), err
-		}
-		total += n
-	}
-	return int64(total), nil
-}
-
-func (b *Blush) processLine(w io.Writer, line string) (int, error) {
-	var total int
-	str, ok := lookInto(b.Finders, line)
-	if ok || b.NoCut {
-		var prefix string
-		if b.WithFileName {
-			prefix = fileName(b.Reader)
-			total += len(prefix)
-		}
-		if n, err := fmt.Fprintf(w, "%s%s\n", prefix, str); err != nil {
-			return n, err
-		}
-		total += len(str) + 1 // new-line is added here (\n above)
-	}
-	return total, nil
 }
 
 // lookInto returns a new decorated line if any of the Finders decorate it, or
