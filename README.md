@@ -35,7 +35,7 @@ with the following command:
 $ go get github.com/arsham/blush
 ```
 
-Make sure you have `go` installed.
+Make sure you have `go>=1.7` installed.
 
 ### Update
 

@@ -3,7 +3,6 @@ package cmd
 import (
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 
 	"github.com/arsham/blush/blush"
@@ -75,9 +74,7 @@ func (a *args) setPaths() error {
 		input    = a.remaining
 	)
 	// going backwards from the end.
-	sort.SliceStable(input, func(i, j int) bool {
-		return i > j
-	})
+	input = flip(input)
 
 	// I don't like this label, but if we replace the `switch` statement with a
 	// regular if-then-else clause, it gets ugly and doesn't show its
@@ -114,14 +111,10 @@ LOOP:
 		return ErrNoFilesFound
 	}
 
-	// We have reversed it. We need to return back in the same order.
-	sort.SliceStable(ret, func(i, j int) bool {
-		return i > j
-	})
+	// to return back in the same order.
+	ret = flip(ret)
 	// to keep the original user's preference.
-	sort.SliceStable(p, func(i, j int) bool {
-		return i > j
-	})
+	p = flip(p)
 	a.remaining = ret
 	a.paths = p
 	return nil
@@ -138,6 +131,16 @@ func (a *args) setFinders() {
 		l := blush.NewLocator(lastColour, token, a.insensitive)
 		a.finders = append(a.finders, l)
 	}
+}
+
+func flip(s []string) []string {
+	ret := make([]string, len(s))
+	max := len(s) - 1
+	for i, v := range s {
+		j := max - i
+		ret[j] = v
+	}
+	return ret
 }
 
 func inStringSlice(s string, haystack []string) bool {
