@@ -123,8 +123,8 @@ func (m *MultiReader) Read(b []byte) (n int, err error) {
 // Close does nothing.
 func (m *MultiReader) Close() error { return nil }
 
-// Name returns the current reader's name.
-func (m *MultiReader) Name() string {
+// FileName returns the current reader's name.
+func (m *MultiReader) FileName() string {
 	return m.currentName
 }
 

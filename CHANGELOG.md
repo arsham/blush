@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.5.2
+- Removed printing of Stdin when the results are piped in.
+
 ## v0.5.1
 ### Go 1.7 Support
 - Added support for Go version 1.7

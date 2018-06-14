@@ -149,10 +149,10 @@ func lookInto(f []Finder, line string) (string, bool) {
 // fileName returns an empty string if it could not query the fileName from r.
 func fileName(r io.Reader) string {
 	type namer interface {
-		Name() string
+		FileName() string
 	}
 	if o, ok := r.(namer); ok {
-		return o.Name() + Separator
+		return o.FileName() + Separator
 	}
 	return ""
 }

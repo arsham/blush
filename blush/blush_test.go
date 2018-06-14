@@ -542,7 +542,41 @@ func TestPrintName(t *testing.T) {
 	if !strings.Contains(s[1], name2) {
 		t.Fatalf("want `%s` in `%s`", name2, s[1])
 	}
+}
 
+// testing stdin should not print the name
+func TestStdinPrintName(t *testing.T) {
+	input := "line one"
+	oldStdin := os.Stdin
+	f, err := ioutil.TempFile("", "blush_stdin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err = os.Remove(f.Name()); err != nil {
+			t.Error(err)
+		}
+		os.Stdin = oldStdin
+	}()
+	os.Stdin = f
+	f.WriteString(input)
+	f.Seek(0, 0)
+	b := blush.Blush{
+		Reader:       f,
+		Finders:      []blush.Finder{blush.NewExact("line", blush.NoColour)},
+		WithFileName: true,
+	}
+	buf := new(bytes.Buffer)
+	_, err = b.WriteTo(buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if buf.String() != input {
+		t.Errorf("buf.String() = `%s`, want `%s`", buf.String(), input)
+	}
+	if strings.Contains(buf.String(), f.Name()) {
+		t.Errorf("buf.String() = `%s`, don't want `%s` in it", buf.String(), f.Name())
+	}
 }
 
 func TestPrintFileName(t *testing.T) {
