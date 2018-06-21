@@ -143,118 +143,47 @@ func BenchmarkFind(b *testing.B) {
 	}
 }
 
-func BenchmarkWriteTo(b *testing.B) {
-	// lnr = long reader
-	// ml = multi
-	// rds = readers
-	// mdl = middle
-	bcs := []struct {
-		name   string
-		reader func() io.Reader
-		match  []blush.Finder
-	}{
-		{
-			"short",
-			func() io.Reader {
-				return bytes.NewBuffer([]byte("one two three four"))
-			},
-			[]blush.Finder{blush.NewExact("three", blush.Blue)},
-		},
-		{
-			"lnr",
-			func() io.Reader {
-				return bytes.NewBuffer(bytes.Repeat([]byte("one two three four"), 200))
-			},
-			[]blush.Finder{blush.NewExact("three", blush.Blue)},
-		},
-		{
-			"lnr ml lines",
-			func() io.Reader {
-				return bytes.NewBuffer(bytes.Repeat([]byte("one two three four\n"), 200))
-			},
-			[]blush.Finder{blush.NewExact("three", blush.Blue)},
-		},
-		{
-			"lnr in mdl",
-			func() io.Reader {
-				p := bytes.Repeat([]byte("one two three four"), 100)
-				return bytes.NewBuffer(bytes.Join([][]byte{p, p}, []byte(" MIDDLE ")))
-			},
-			[]blush.Finder{blush.NewExact("MIDDLE", blush.Blue)},
-		},
-		{
-			"two rds",
-			func() io.Reader {
-				input := []byte("one two three four\n")
-				return io.MultiReader(bytes.NewBuffer(input), bytes.NewBuffer(input))
-			},
-			[]blush.Finder{blush.NewExact("three", blush.Blue)},
-		},
-		{
-			"ln two rds",
-			func() io.Reader {
-				input := bytes.Repeat([]byte("one two three four\n"), 200)
-				return io.MultiReader(bytes.NewBuffer(input), bytes.NewBuffer(input))
-			},
-			[]blush.Finder{blush.NewExact("three", blush.Blue)},
-		},
-		{
-			"100 rds",
-			func() io.Reader {
-				input := []byte("one two three four\n")
-				v := make([]io.Reader, 100)
-				for i := 0; i < 100; i++ {
-					v[i] = bytes.NewBuffer(input)
-				}
-				return io.MultiReader(v...)
-			},
-			[]blush.Finder{blush.NewExact("three", blush.Blue)},
-		},
-		{
-			"ln 100 rds",
-			func() io.Reader {
-				input := bytes.Repeat([]byte("one two three four\n"), 200)
-				v := make([]io.Reader, 100)
-				for i := 0; i < 100; i++ {
-					v[i] = bytes.NewBuffer(input)
-				}
-				return io.MultiReader(v...)
-			},
-			[]blush.Finder{blush.NewExact("three", blush.Blue)},
-		},
-	}
-	for _, bc := range bcs {
-		b.Run(bc.name, func(b *testing.B) {
-			for i := 0; i < b.N; i++ {
-				input := ioutil.NopCloser(bc.reader())
-				bl := &blush.Blush{
-					Finders: bc.match,
-					Reader:  input,
-				}
-				buf := new(bytes.Buffer)
-				n, err := io.Copy(buf, bl)
-				if n == 0 {
-					b.Errorf("b.Read(): n = 0, want some read")
-				}
-				if err != nil {
-					b.Error(err)
-				}
-			}
-		})
-	}
+// lnr = long reader
+// ml = multi
+// rds = readers
+// mdl = middle
+type benchCase struct {
+	name   string
+	reader func() io.Reader
+	match  []blush.Finder
+	length int
 }
 
-func BenchmarkRead(b *testing.B) {
-	// lnr = long reader
-	// ml = multi
-	// rds = readers
-	// mdl = middle
-	bcs := []struct {
-		name   string
-		reader func() io.Reader
-		match  []blush.Finder
-		length int
-	}{
+func BenchmarkBlush(b *testing.B) {
+	readLarge := func() io.Reader {
+		input := bytes.Repeat([]byte("one two three four\n"), 200)
+		v := make([]io.Reader, 100)
+		for i := 0; i < 100; i++ {
+			v[i] = bytes.NewBuffer(input)
+		}
+		return io.MultiReader(v...)
+	}
+
+	readMedium := func() io.Reader {
+		input := bytes.Repeat([]byte("one two three four\n"), 200)
+		return io.MultiReader(bytes.NewBuffer(input), bytes.NewBuffer(input))
+	}
+
+	multiReader100 := func() io.Reader {
+		input := []byte("one two three four\n")
+		v := make([]io.Reader, 100)
+		for i := 0; i < 100; i++ {
+			v[i] = bytes.NewBuffer(input)
+		}
+		return io.MultiReader(v...)
+	}
+
+	readMiddle := func() io.Reader {
+		p := bytes.Repeat([]byte("one two three four"), 100)
+		return bytes.NewBuffer(bytes.Join([][]byte{p, p}, []byte(" MIDDLE ")))
+	}
+
+	bcs := []benchCase{
 		{
 			"short-10",
 			func() io.Reader {
@@ -305,19 +234,13 @@ func BenchmarkRead(b *testing.B) {
 		},
 		{
 			"lnr in mdl-10",
-			func() io.Reader {
-				p := bytes.Repeat([]byte("one two three four"), 100)
-				return bytes.NewBuffer(bytes.Join([][]byte{p, p}, []byte(" MIDDLE ")))
-			},
+			readMiddle,
 			[]blush.Finder{blush.NewExact("MIDDLE", blush.Blue)},
 			10,
 		},
 		{
 			"lnr in mdl-1000",
-			func() io.Reader {
-				p := bytes.Repeat([]byte("one two three four"), 100)
-				return bytes.NewBuffer(bytes.Join([][]byte{p, p}, []byte(" MIDDLE ")))
-			},
+			readMiddle,
 			[]blush.Finder{blush.NewExact("MIDDLE", blush.Blue)},
 			1000,
 		},
@@ -341,94 +264,85 @@ func BenchmarkRead(b *testing.B) {
 		},
 		{
 			"ln two rds-10",
-			func() io.Reader {
-				input := bytes.Repeat([]byte("one two three four\n"), 200)
-				return io.MultiReader(bytes.NewBuffer(input), bytes.NewBuffer(input))
-			},
+			readMedium,
 			[]blush.Finder{blush.NewExact("three", blush.Blue)},
 			10,
 		},
 		{
 			"ln two rds-1000",
-			func() io.Reader {
-				input := bytes.Repeat([]byte("one two three four\n"), 200)
-				return io.MultiReader(bytes.NewBuffer(input), bytes.NewBuffer(input))
-			},
+			readMedium,
 			[]blush.Finder{blush.NewExact("three", blush.Blue)},
 			1000,
 		},
 		{
 			"100 rds-10",
-			func() io.Reader {
-				input := []byte("one two three four\n")
-				v := make([]io.Reader, 100)
-				for i := 0; i < 100; i++ {
-					v[i] = bytes.NewBuffer(input)
-				}
-				return io.MultiReader(v...)
-			},
+			multiReader100,
 			[]blush.Finder{blush.NewExact("three", blush.Blue)},
 			10,
 		},
 		{
 			"100 rds-1000",
-			func() io.Reader {
-				input := []byte("one two three four\n")
-				v := make([]io.Reader, 100)
-				for i := 0; i < 100; i++ {
-					v[i] = bytes.NewBuffer(input)
-				}
-				return io.MultiReader(v...)
-			},
+			multiReader100,
 			[]blush.Finder{blush.NewExact("three", blush.Blue)},
 			1000,
 		},
 		{
 			"ln 100 rds-10",
-			func() io.Reader {
-				input := bytes.Repeat([]byte("one two three four\n"), 200)
-				v := make([]io.Reader, 100)
-				for i := 0; i < 100; i++ {
-					v[i] = bytes.NewBuffer(input)
-				}
-				return io.MultiReader(v...)
-			},
+			readLarge,
 			[]blush.Finder{blush.NewExact("three", blush.Blue)},
 			10,
 		},
 		{
 			"ln 100 rds-1000",
-			func() io.Reader {
-				input := bytes.Repeat([]byte("one two three four\n"), 200)
-				v := make([]io.Reader, 100)
-				for i := 0; i < 100; i++ {
-					v[i] = bytes.NewBuffer(input)
-				}
-				return io.MultiReader(v...)
-			},
+			readLarge,
 			[]blush.Finder{blush.NewExact("three", blush.Blue)},
 			1000,
 		},
 	}
 	for _, bc := range bcs {
-		b.Run(bc.name, func(b *testing.B) {
-			p := make([]byte, bc.length)
-			for i := 0; i < b.N; i++ {
-				input := ioutil.NopCloser(bc.reader())
-				bl := &blush.Blush{
-					Finders: bc.match,
-					Reader:  input,
-				}
-				for {
-					_, err := bl.Read(p)
-					if err != nil {
-						if err != io.EOF {
-							b.Errorf("err = %v", err)
-						}
-						break
-					}
-				}
-			}
+		b.Run("read_"+bc.name, func(b *testing.B) {
+			benchmarkRead(b, bc)
 		})
+		b.Run("writeTo_"+bc.name, func(b *testing.B) {
+			benchmarkWriteTo(b, bc)
+		})
+	}
+}
+
+func benchmarkRead(b *testing.B, bc benchCase) {
+	p := make([]byte, bc.length)
+	for i := 0; i < b.N; i++ {
+		input := ioutil.NopCloser(bc.reader())
+		bl := &blush.Blush{
+			Finders: bc.match,
+			Reader:  input,
+		}
+		for {
+			_, err := bl.Read(p)
+			if err != nil {
+				if err != io.EOF {
+					b.Errorf("err = %v", err)
+				}
+				break
+			}
+		}
+	}
+}
+
+func benchmarkWriteTo(b *testing.B, bc benchCase) {
+	for i := 0; i < b.N; i++ {
+		input := ioutil.NopCloser(bc.reader())
+		bl := &blush.Blush{
+			Finders: bc.match,
+			Reader:  input,
+		}
+		buf := new(bytes.Buffer)
+		n, err := io.Copy(buf, bl)
+		if n == 0 {
+			b.Errorf("b.Read(): n = 0, want some read")
+		}
+		if err != nil {
+			b.Error(err)
+		}
 	}
 }

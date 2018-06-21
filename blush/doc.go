@@ -3,7 +3,12 @@
 //
 // Blush struct has a Reader property which can be Stdin in case of it being
 // shell's pipe, or any type that implements io.ReadCloser. If NoCut is set to
-// true, it will show all lines despite being not matched.
+// true, it will show all lines despite being not matched. You cannot call
+// Read() and WriteTo() on the same object. Blush will return ErrReadWriteMix on
+// the second consequent call. The first time Read/WriteTo is called, it will
+// start a goroutine and reads up to LineCache lines from Reader. If the Read()
+// is in use, it starts a goroutine that reads up to CharCache bytes from the
+// line cache and fills up the given buffer.
 //
 // The hex number should be in 3 or 6 part format (#aaaaaa or #aaa) and each
 // part will be translated to a number value between 0 and 255 when creating the

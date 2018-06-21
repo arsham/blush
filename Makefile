@@ -1,4 +1,4 @@
-TARGET=$(shell git describe)
+TARGET=$(shell git describe --abbrev=0 --tags)
 
 deps:
 	@go get github.com/Masterminds/glide

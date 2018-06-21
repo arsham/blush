@@ -41,10 +41,10 @@ func TestWriteToErrors(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
+			tc.b.Finders = []blush.Finder{blush.NewExact("", blush.NoColour)}
 			n, err := tc.b.WriteTo(tc.writer)
 			if err == nil {
-				t.Error("New(): err = nil, want error")
-				return
+				t.Fatal("New(): err = nil, want error")
 			}
 			if int(n) != tc.wantN {
 				t.Errorf("l.WriteTo(): n = %d, want %d", n, tc.wantN)
@@ -854,5 +854,35 @@ func TestReadMultiLine(t *testing.T) {
 				t.Errorf("p = `%v: %s`, want `%v: %s`", p, p, tc.want, tc.want)
 			}
 		})
+	}
+}
+
+func TestReadWriteToMode(t *testing.T) {
+	p := make([]byte, 1)
+	r := ioutil.NopCloser(bytes.NewBufferString("input"))
+	b := &blush.Blush{
+		Finders: []blush.Finder{blush.NewExact("", blush.NoColour)},
+		Reader:  r,
+	}
+	_, err := b.Read(p)
+	if err != nil {
+		t.Errorf("err = %v, want nil", err)
+	}
+	_, err = b.WriteTo(new(bytes.Buffer))
+	if err != blush.ErrReadWriteMix {
+		t.Errorf("err = %v, want %v", err, blush.ErrReadWriteMix)
+	}
+
+	b = &blush.Blush{
+		Finders: []blush.Finder{blush.NewExact("", blush.NoColour)},
+		Reader:  r,
+	}
+	_, err = b.WriteTo(new(bytes.Buffer))
+	if err != nil {
+		t.Errorf("err = %v, want %v", err, nil)
+	}
+	_, err = b.Read(p)
+	if err != blush.ErrReadWriteMix {
+		t.Errorf("err = %v, want %v", err, blush.ErrReadWriteMix)
 	}
 }
