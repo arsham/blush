@@ -1,33 +1,97 @@
+help: ## Show help messages.
+	@grep -E '^[0-9a-zA-Z_-]+:(.*?## .*)?$$' $(MAKEFILE_LIST) | sed 's/^Makefile://' | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+run="."
+dir="./..."
+short="-short"
+flags=""
+timeout=40s
+build_tag=$(shell git describe --abbrev=0 --tags)
+current_sha=$(shell git rev-parse --short HEAD)
+
 TARGET=$(shell git describe --abbrev=0 --tags)
+RELEADE_NAME=blush
+DEPLOY_FOLDER=deploy
+CHECKSUM_FILE=CHECKSUM
+MAKEFLAGS += -j1
 
-deps:
-	@go get github.com/Masterminds/glide
-	@glide install
+.PHONY: unit_test_watch
+unit_test_watch: ## Run unit tests in watch mode. You can set: [run, timeout, short, dir, flags]. Example: make unit_test flags="-race".
+	@echo "running tests on $(run). waiting for changes..."
+	@-zsh -c "go mod tidy; go test -trimpath --timeout=$(timeout) $(short) $(dir) -run $(run) $(flags); repeat 100 printf '#'; echo"
+	@reflex -d none -r "(\.go$$)|(go.mod)|(\.sql$$)" -- zsh -c "go mod tidy; go test -trimpath --timeout=$(timeout) $(short) $(dir) -run $(run) $(flags); repeat 100 printf '#'"
 
-tmpfolder:
-	mkdir -p deploy
+.PHONY: lint
+lint: ## Run linters.
+	go fmt ./...
+	go vet ./...
+	golangci-lint run ./...
 
+.PHONY: ci_tests
+ci_tests: ## Run tests for CI.
+	go test -trimpath --timeout=10m -failfast -v  -race -covermode=atomic -coverprofile=coverage.out ./...
+
+.PHONY: dependencies
+dependencies: ## Install dependencies requried for development operations.
+	@go install github.com/cespare/reflex@latest
+	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.45.2
+	@go install github.com/psampaz/go-mod-outdated@latest
+	@go install github.com/jondot/goweight@latest
+	@go get -t -u golang.org/x/tools/cmd/cover
+	@go get -t -u github.com/sonatype-nexus-community/nancy@latest
+	@go get -u ./...
+	@go mod tidy
+
+.PHONY: clean
+clean: ## Clean test caches and tidy up modules.
+	@go clean -testcache
+	@go mod tidy
+	@rm -rf $(DEPLOY_FOLDER)
+
+.PHONY: tmpfolder
+tmpfolder: ## Create the temporary folder.
+	@mkdir -p $(DEPLOY_FOLDER)
+	@rm -rf $(DEPLOY_FOLDER)/$(CHECKSUM_FILE) 2> /dev/null
+
+.PHONY: linux
 linux: tmpfolder
-	GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o deploy/blush main.go
-	cd deploy; tar -czf blush_linux_$(TARGET).tar.gz blush ; rm blush
+linux: ## Build for GNU/Linux.
+	@GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=$(build_tag) -X main.currentSha=$(current_sha)" -o $(DEPLOY_FOLDER)/$(RELEADE_NAME) .
+	@tar -czf $(DEPLOY_FOLDER)/blush_linux_$(TARGET).tar.gz $(DEPLOY_FOLDER)/$(RELEADE_NAME)
+	@cd $(DEPLOY_FOLDER) ; sha256sum blush_linux_$(TARGET).tar.gz >> $(CHECKSUM_FILE)
+	@echo "Linux target:" $(DEPLOY_FOLDER)/blush_linux_$(TARGET).tar.gz
+	@rm $(DEPLOY_FOLDER)/$(RELEADE_NAME)
 
+.PHONY: darwin
 darwin: tmpfolder
-	GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o deploy/blush main.go
-	cd deploy; tar -czf blush_darwin_$(TARGET).tar.gz blush ; rm blush
+darwin: ## Build for Mac.
+	@GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=$(build_tag) -X main.currentSha=$(current_sha)" -o $(DEPLOY_FOLDER)/$(RELEADE_NAME) .
+	@tar -czf $(DEPLOY_FOLDER)/blush_darwin_$(TARGET).tar.gz $(DEPLOY_FOLDER)/$(RELEADE_NAME)
+	@cd $(DEPLOY_FOLDER) ; sha256sum blush_darwin_$(TARGET).tar.gz >> $(CHECKSUM_FILE)
+	@echo "Darwin target:" $(DEPLOY_FOLDER)/blush_darwin_$(TARGET).tar.gz
+	@rm $(DEPLOY_FOLDER)/$(RELEADE_NAME)
 
+.PHONY: windows
 windows: tmpfolder
-	GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o deploy/blush.exe main.go
-	cd deploy; zip -r blush_windows_$(TARGET).zip blush.exe ; rm blush.exe
+windows: ## Build for windoze.
+	@GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=$(build_tag) -X main.currentSha=$(current_sha)" -o $(DEPLOY_FOLDER)/$(RELEADE_NAME).exe .
+	@zip -r $(DEPLOY_FOLDER)/blush_windows_$(TARGET).zip $(DEPLOY_FOLDER)/$(RELEADE_NAME).exe
+	@cd $(DEPLOY_FOLDER) ; sha256sum blush_windows_$(TARGET).zip >> $(CHECKSUM_FILE)
+	@echo "Windows target:" $(DEPLOY_FOLDER)/blush_windows_$(TARGET).zip
+	@rm $(DEPLOY_FOLDER)/$(RELEADE_NAME).exe
 
-release: deps linux darwin windows
+.PHONY: release
+release: ## Create releases for Linux, Mac, and windoze.
+release: linux darwin windows
 
-clean:
-	rm -rf deploy
+.PHONY: coverage
+coverage: ## Show the test coverage on browser.
+	go test -covermode=count -coverprofile=coverage.out ./...
+	go tool cover -func=coverage.out | tail -n 1
+	go tool cover -html=coverage.out
 
-install: deps
-	go install
-
-update: deps
-	git pull origin master
-
-.PHONY: release linux darwin windows tmpfolder clean install deps update
+.PHONY: audit
+audit: ## Audit the code for updates, vulnerabilities and binary weight.
+	go list -u -m -json all | go-mod-outdated -update -direct
+	go list -json -m all | nancy sleuth
+	goweight | head -n 20
