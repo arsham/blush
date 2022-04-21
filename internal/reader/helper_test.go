@@ -6,6 +6,8 @@ import (
 	"os"
 	"path"
 	"testing"
+
+	"github.com/alecthomas/assert"
 )
 
 // this file contains helpers for all tests in this package.
@@ -22,35 +24,31 @@ type testCase struct {
 	content string
 }
 
-func setup(t *testing.T, input []testCase) ([]string, func()) {
+func setup(t *testing.T, input []testCase) []string {
+	t.Helper()
 	dir, err := ioutil.TempDir("", "blush_walker")
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 	ret := make([]string, len(input))
 	for i, d := range input {
 		name := path.Join(dir, d.name)
 		base := path.Dir(name)
 		err = os.MkdirAll(base, os.ModePerm)
-		if err != nil {
-			t.Fatal(err)
-		}
+		assert.NoError(t, err)
 		f, err := os.Create(name)
-		if err != nil {
-			t.Fatal(err)
-		}
+		assert.NoError(t, err)
 		f.WriteString(d.content)
 		f.Close()
 		ret[i] = base
 	}
-	return ret, func() {
-		if err := os.RemoveAll(dir); err != nil {
-			t.Error(err)
-		}
-	}
+	t.Cleanup(func() {
+		err := os.RemoveAll(dir)
+		assert.NoError(t, err)
+	})
+
+	return ret
 }
 
-func inStringSlice(niddle string, haystack []string) bool {
+func inSlice(niddle string, haystack []string) bool {
 	for _, s := range haystack {
 		if s == niddle {
 			return true

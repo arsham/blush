@@ -2,7 +2,6 @@ package reader
 
 import (
 	"io"
-	"io/ioutil"
 	"os"
 
 	"github.com/arsham/blush/internal/tools"
@@ -16,8 +15,8 @@ var ErrNoReader = errors.New("no input")
 // Read() method is called in order. The reader is loaded lazily if it is a
 // file to prevent the system going out of file descriptors.
 type MultiReader struct {
-	readers     []*container
 	currentName string
+	readers     []*container
 }
 
 // NewMultiReader creates an instance of the MultiReader and passes it to all
@@ -81,7 +80,7 @@ func WithPaths(paths []string, recursive bool) Conf {
 			c := &container{
 				get: func() (io.ReadCloser, error) {
 					m.currentName = name
-					f, err := os.Open(name)
+					f, err := os.Open(name) // nolint:gosec // we need this.
 					return f, err
 				},
 			}
@@ -103,14 +102,17 @@ func (m *MultiReader) Read(b []byte) (n int, err error) {
 			}
 		}
 		n, err = m.readers[0].Read(b)
-		if err == io.EOF {
-			m.readers[0].r.Close()
-			c := &container{r: ioutil.NopCloser(nil)}
+		if errors.Is(err, io.EOF) {
+			err := m.readers[0].r.Close()
+			if err != nil {
+				return n, errors.Wrap(err, "MultiReader.Read")
+			}
+			c := &container{r: io.NopCloser(nil)}
 			m.readers[0] = c
 			m.readers = m.readers[1:]
 		}
-		if n > 0 || err != io.EOF {
-			if err == io.EOF && len(m.readers) > 0 {
+		if n > 0 || !errors.Is(err, io.EOF) {
+			if errors.Is(err, io.EOF) && len(m.readers) > 0 {
 				err = nil
 			}
 			return
@@ -133,8 +135,8 @@ func (m *MultiReader) FileName() string {
 // demand, otherwise the system gets out of file descriptors.
 type container struct {
 	r    io.ReadCloser
-	open bool
 	get  func() (io.ReadCloser, error)
+	open bool
 }
 
 func (c *container) Read(b []byte) (int, error) {

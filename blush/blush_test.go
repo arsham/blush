@@ -11,12 +11,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/alecthomas/assert"
 	"github.com/arsham/blush/blush"
 	"github.com/arsham/blush/internal/reader"
 )
 
 func TestWriteToErrors(t *testing.T) {
-	w := new(bytes.Buffer)
+	t.Parallel()
+	w := &bytes.Buffer{}
 	e := errors.New("something")
 	nn := 10
 	bw := &badWriter{
@@ -25,142 +27,101 @@ func TestWriteToErrors(t *testing.T) {
 		},
 	}
 	getReader := func() io.ReadCloser {
-		return ioutil.NopCloser(bytes.NewBufferString("something"))
+		return io.NopCloser(bytes.NewBufferString("something"))
 	}
 	tcs := []struct {
 		name    string
 		b       *blush.Blush
 		writer  io.Writer
 		wantN   int
-		wantErr string
+		wantErr error
 	}{
-		{"no input", &blush.Blush{}, w, 0, reader.ErrNoReader.Error()},
-		{"no writer", &blush.Blush{Reader: getReader()}, nil, 0, blush.ErrNoWriter.Error()},
-		{"bad writer", &blush.Blush{Reader: getReader(), NoCut: true}, bw, nn, e.Error()},
+		{"no input", &blush.Blush{}, w, 0, reader.ErrNoReader},
+		{"no writer", &blush.Blush{Reader: getReader()}, nil, 0, blush.ErrNoWriter},
+		{"bad writer", &blush.Blush{Reader: getReader(), NoCut: true}, bw, nn, e},
 	}
 
 	for _, tc := range tcs {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			tc.b.Finders = []blush.Finder{blush.NewExact("", blush.NoColour)}
 			n, err := tc.b.WriteTo(tc.writer)
-			if err == nil {
-				t.Fatal("New(): err = nil, want error")
-			}
-			if int(n) != tc.wantN {
-				t.Errorf("l.WriteTo(): n = %d, want %d", n, tc.wantN)
-			}
-			if !strings.Contains(err.Error(), tc.wantErr) {
-				t.Errorf("want `%s` in `%s`", tc.wantErr, err.Error())
-			}
+			assert.Error(t, err)
+			assert.EqualValues(t, tc.wantN, n)
+			assert.EqualError(t, err, tc.wantErr.Error())
 		})
 	}
 }
 
 func TestWriteToNoMatch(t *testing.T) {
+	t.Parallel()
 	pwd, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 	location := path.Join(pwd, "testdata")
 	r, err := reader.NewMultiReader(reader.WithPaths([]string{location}, true))
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 	b := &blush.Blush{
 		Reader:  r,
 		Finders: []blush.Finder{blush.NewExact("SHOULDNOTFINDTHISONE", blush.NoColour)},
 	}
-	buf := new(bytes.Buffer)
+	buf := &bytes.Buffer{}
 	n, err := b.WriteTo(buf)
-	if err != nil {
-		t.Errorf("err = %v, want %v", err, nil)
-	}
-	if n != 0 {
-		t.Errorf("b.WriteTo(): n = %d, want %d", n, 0)
-	}
-	if buf.Len() > 0 {
-		t.Errorf("buf.Len() = %d, want 0", buf.Len())
-	}
+	assert.NoError(t, err)
+	assert.Zero(t, n)
+	assert.Zero(t, buf.Len())
 }
 
 func TestWriteToMatchNoColourPlain(t *testing.T) {
+	t.Parallel()
 	match := "TOKEN"
 	pwd, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 	location := path.Join(pwd, "testdata")
 	r, err := reader.NewMultiReader(reader.WithPaths([]string{location}, true))
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
+
 	b := &blush.Blush{
 		Reader:  r,
 		Finders: []blush.Finder{blush.NewExact(match, blush.NoColour)},
 	}
 
-	buf := new(bytes.Buffer)
+	buf := &bytes.Buffer{}
 	n, err := b.WriteTo(buf)
-	if err != nil {
-		t.Errorf("err = %v, want %v", err, nil)
-	}
-	if buf.Len() == 0 {
-		t.Errorf("buf.Len() = %d, want > 0", buf.Len())
-	}
-	if int(n) != buf.Len() {
-		t.Errorf("b.WriteTo(): n = %d, want %d", int(n), buf.Len())
-	}
-	if !strings.Contains(buf.String(), match) {
-		t.Errorf("want `%s` in `%s`", match, buf.String())
-	}
-	if strings.Contains(buf.String(), "[38;5;") {
-		t.Errorf("didn't expect colouring: `%s`", buf.String())
-	}
-	if strings.Contains(buf.String(), leaveMeHere) {
-		t.Errorf("didn't expect to see %s", leaveMeHere)
-	}
+	assert.NoError(t, err)
+	assert.NotZero(t, buf.Len())
+	assert.EqualValues(t, buf.Len(), n)
+
+	assert.Contains(t, buf.String(), match)
+	assert.NotContains(t, buf.String(), leaveMeHere)
 }
 
 func TestWriteToMatchColour(t *testing.T) {
+	t.Parallel()
 	match := blush.Colourise("TOKEN", blush.Blue)
 	pwd, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 	location := path.Join(pwd, "testdata")
 	r, err := reader.NewMultiReader(reader.WithPaths([]string{location}, true))
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 	b := &blush.Blush{
 		Reader:  r,
 		Finders: []blush.Finder{blush.NewExact("TOKEN", blush.Blue)},
 	}
 
-	buf := new(bytes.Buffer)
+	buf := &bytes.Buffer{}
 	n, err := b.WriteTo(buf)
-	if err != nil {
-		t.Errorf("err = %v, want %v", err, nil)
-	}
-	if buf.Len() == 0 {
-		t.Errorf("buf.Len() = %d, want > 0", buf.Len())
-	}
-	if int(n) != buf.Len() {
-		t.Errorf("b.WriteTo(): n = %d, want %d", int(n), buf.Len())
-	}
-	if !strings.Contains(buf.String(), match) {
-		t.Errorf("want `%s` in `%s`", match, buf.String())
-	}
-	if strings.Contains(buf.String(), leaveMeHere) {
-		t.Errorf("didn't expect to see %s", leaveMeHere)
-	}
+	assert.NoError(t, err)
+	assert.NotZero(t, buf.Len())
+	assert.EqualValues(t, buf.Len(), n)
+
+	assert.Contains(t, buf.String(), match)
+	assert.NotContains(t, buf.String(), leaveMeHere)
 }
 
 func TestWriteToMatchCountColour(t *testing.T) {
+	t.Parallel()
 	pwd, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 
 	tcs := []struct {
 		name      string
@@ -181,9 +142,7 @@ func TestWriteToMatchCountColour(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			location := path.Join(pwd, "testdata")
 			r, err := reader.NewMultiReader(reader.WithPaths([]string{location}, tc.recursive))
-			if err != nil {
-				t.Fatal(err)
-			}
+			assert.NoError(t, err)
 
 			match := blush.Colourise(tc.name, blush.Red)
 			b := &blush.Blush{
@@ -191,37 +150,26 @@ func TestWriteToMatchCountColour(t *testing.T) {
 				Finders: []blush.Finder{blush.NewExact(tc.name, blush.Red)},
 			}
 
-			buf := new(bytes.Buffer)
+			buf := &bytes.Buffer{}
 			n, err := b.WriteTo(buf)
-			if err != nil {
-				t.Errorf("b.WriteTo(): err = %v, want %v", err, nil)
-			}
-			if int(n) != buf.Len() {
-				t.Errorf("b.WriteTo(): n = %d, want %d", int(n), buf.Len())
-			}
+			assert.NoError(t, err)
+			assert.EqualValues(t, buf.Len(), n)
 			count := strings.Count(buf.String(), match)
-			if count != tc.count {
-				t.Errorf("count = %d, want %d", count, tc.count)
-			}
-			if strings.Contains(buf.String(), leaveMeHere) {
-				t.Errorf("didn't expect to see %s", leaveMeHere)
-			}
+			assert.EqualValues(t, tc.count, count)
+			assert.NotContains(t, buf.String(), leaveMeHere)
 		})
 	}
 }
 
 func TestWriteToMultiColour(t *testing.T) {
+	t.Parallel()
 	two := blush.Colourise("TWO", blush.Magenta)
 	three := blush.Colourise("THREE", blush.Red)
 	pwd, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 	location := path.Join(pwd, "testdata")
 	r, err := reader.NewMultiReader(reader.WithPaths([]string{location}, true))
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 	b := &blush.Blush{
 		Reader: r,
 		Finders: []blush.Finder{
@@ -230,42 +178,29 @@ func TestWriteToMultiColour(t *testing.T) {
 		},
 	}
 
-	buf := new(bytes.Buffer)
+	buf := &bytes.Buffer{}
 	n, err := b.WriteTo(buf)
-	if err != nil {
-		t.Errorf("err = %v, want %v", err, nil)
-	}
-	if buf.Len() == 0 {
-		t.Errorf("buf.Len() = %d, want > 0", buf.Len())
-	}
-	if int(n) != buf.Len() {
-		t.Errorf("b.WriteTo(): n = %d, want %d", int(n), buf.Len())
-	}
+	assert.NoError(t, err)
+	assert.NotZero(t, buf.Len())
+	assert.EqualValues(t, buf.Len(), n)
 	count := strings.Count(buf.String(), two)
-	if count != 2*3 {
-		t.Errorf("count = %d, want %d", count, 2*3)
-	}
+	assert.EqualValues(t, 2*3, count)
 	count = strings.Count(buf.String(), three)
-	if count != 3*3 {
-		t.Errorf("count = %d, want %d", count, 3*3)
-	}
+	assert.EqualValues(t, 3*3, count)
 	if strings.Contains(buf.String(), leaveMeHere) {
 		t.Errorf("didn't expect to see %s", leaveMeHere)
 	}
 }
 
 func TestWriteToMultiColourColourMode(t *testing.T) {
+	t.Parallel()
 	two := blush.Colourise("TWO", blush.Magenta)
 	three := blush.Colourise("THREE", blush.Red)
 	pwd, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 	location := path.Join(pwd, "testdata")
 	r, err := reader.NewMultiReader(reader.WithPaths([]string{location}, true))
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 	b := &blush.Blush{
 		Reader: r,
 		NoCut:  true,
@@ -275,43 +210,33 @@ func TestWriteToMultiColourColourMode(t *testing.T) {
 		},
 	}
 
-	buf := new(bytes.Buffer)
+	buf := &bytes.Buffer{}
 	n, err := b.WriteTo(buf)
-	if err != nil {
-		t.Errorf("err = %v, want %v", err, nil)
-	}
-	if buf.Len() == 0 {
-		t.Errorf("buf.Len() = %d, want > 0", buf.Len())
-	}
-	if int(n) != buf.Len() {
-		t.Errorf("b.WriteTo(): n = %d, want %d", int(n), buf.Len())
-	}
+	assert.NoError(t, err)
+
+	assert.NotZero(t, buf.Len())
+	assert.EqualValues(t, buf.Len(), n)
 	count := strings.Count(buf.String(), two)
-	if count != 2*3 {
-		t.Errorf("count = %d, want %d", count, 2*3)
-	}
+	assert.EqualValues(t, 2*3, count)
 	count = strings.Count(buf.String(), three)
-	if count != 3*3 {
-		t.Errorf("count = %d, want %d", count, 3*3)
-	}
+	assert.EqualValues(t, 3*3, count)
 	count = strings.Count(buf.String(), leaveMeHere)
-	if count != 1 {
-		t.Errorf("count = %d, want to see `%s` exactly %d times", count, leaveMeHere, 1)
-	}
+	assert.EqualValues(t, 1, count)
 }
 
 func TestWriteToMultipleMatchInOneLine(t *testing.T) {
+	t.Parallel()
 	line1 := "this is an example\n"
 	line2 := "someone should find this line\n"
 	input1 := bytes.NewBuffer([]byte(line1))
 	input2 := bytes.NewBuffer([]byte(line2))
-	r := ioutil.NopCloser(io.MultiReader(input1, input2))
+	r := io.NopCloser(io.MultiReader(input1, input2))
 	match := fmt.Sprintf(
 		"someone %s find %s line",
 		blush.Colourise("should", blush.Red),
 		blush.Colourise("this", blush.Magenta),
 	)
-	out := new(bytes.Buffer)
+	out := &bytes.Buffer{}
 
 	b := &blush.Blush{
 		Reader: r,
@@ -327,12 +252,11 @@ func TestWriteToMultipleMatchInOneLine(t *testing.T) {
 	if strings.Contains(example, "is an example") {
 		example = lines[0]
 	}
-	if example != match {
-		t.Errorf("example = %s, want %s", example, match)
-	}
+	assert.EqualValues(t, match, example)
 }
 
 func TestBlushClosesReader(t *testing.T) {
+	t.Parallel()
 	var called bool
 	input := bytes.NewBuffer([]byte("DwgQnpvro5bVvrRwBB"))
 	w := nopCloser{
@@ -346,18 +270,15 @@ func TestBlushClosesReader(t *testing.T) {
 		Reader: w,
 	}
 	err := b.Close()
-	if err != nil {
-		t.Errorf("err = %v, want nil", err)
-	}
-	if !called {
-		t.Error("didn't close the reader")
-	}
+	assert.NoError(t, err)
+	assert.True(t, called, "didn't close the reader")
 }
 
 func TestBlushReadOneStream(t *testing.T) {
+	t.Parallel()
 	input := bytes.NewBuffer([]byte("one two three four"))
 	match := blush.NewExact("three", blush.Blue)
-	r := ioutil.NopCloser(input)
+	r := io.NopCloser(input)
 	b := &blush.Blush{
 		Finders: []blush.Finder{match},
 		Reader:  r,
@@ -381,177 +302,139 @@ func TestBlushReadOneStream(t *testing.T) {
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			n, err := b.Read(tc.p)
-			if err != tc.wantErr {
-				t.Errorf("err = %v, want %v", err, tc.wantErr)
-			}
-			if n != tc.wantLen {
-				t.Errorf("b.Read(): n = %d, want %d", n, tc.wantLen)
-			}
-			if string(tc.p) != tc.wantP {
-				t.Errorf("p = `%s`, want `%s`", tc.p, tc.wantP)
-			}
+			assert.True(t, errors.Is(err, tc.wantErr))
+			assert.EqualValues(t, tc.wantLen, n)
+			assert.EqualValues(t, tc.wantP, tc.p)
 		})
 	}
 }
 
 func TestBlushReadTwoStreams(t *testing.T) {
+	t.Parallel()
 	b1 := []byte("one for all\n")
 	b2 := []byte("all for one\n")
 	input1 := bytes.NewBuffer(b1)
 	input2 := bytes.NewBuffer(b2)
 	match := blush.NewExact("one", blush.Blue)
-	r := ioutil.NopCloser(io.MultiReader(input1, input2))
+	r := io.NopCloser(io.MultiReader(input1, input2))
 	b := &blush.Blush{
 		Finders: []blush.Finder{match},
 		Reader:  r,
 	}
 	defer b.Close()
 
-	buf := new(bytes.Buffer)
+	buf := &bytes.Buffer{}
 	n, err := buf.ReadFrom(b)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(t, err)
 	expectLen := len(b1) + len(b2) - len("one")*2 + len(match.String())*2
-	if int(n) != expectLen {
-		t.Errorf("b.Read(): n = %d, want %d", n, expectLen)
-	}
+	assert.EqualValues(t, expectLen, n)
 	expectStr := fmt.Sprintf("%s%s",
 		strings.Replace(string(b1), "one", match.String(), 1),
 		strings.Replace(string(b2), "one", match.String(), 1),
 	)
-	if buf.String() != expectStr {
-		t.Errorf("buf.String() = %s, want %s", buf.String(), expectStr)
-	}
+	assert.EqualValues(t, expectStr, buf.String())
 }
 
 func TestBlushReadHalfWay(t *testing.T) {
+	t.Parallel()
 	b1 := []byte("one for all\n")
 	b2 := []byte("all for one\n")
 	input1 := bytes.NewBuffer(b1)
 	input2 := bytes.NewBuffer(b2)
 	match := blush.NewExact("one", blush.Blue)
-	r := ioutil.NopCloser(io.MultiReader(input1, input2))
+	r := io.NopCloser(io.MultiReader(input1, input2))
 	b := &blush.Blush{
 		Finders: []blush.Finder{match},
 		Reader:  r,
 	}
 	p := make([]byte, len(b1))
 	_, err := b.Read(p)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(t, err)
 	n, err := b.Read(p)
-	if n != len(b1) {
-		t.Errorf("b.Read(): n = %d, want %d", n, len(b1))
-	}
-	if err != nil {
-		t.Errorf("b.Read(): err = %v, want %v", err, nil)
-	}
+	assert.Len(t, b1, n)
+	assert.NoError(t, err)
 }
 
 func TestBlushReadOnClosed(t *testing.T) {
+	t.Parallel()
 	b1 := []byte("one for all\n")
 	b2 := []byte("all for one\n")
 	input1 := bytes.NewBuffer(b1)
 	input2 := bytes.NewBuffer(b2)
 	match := blush.NewExact("one", blush.Blue)
-	r := ioutil.NopCloser(io.MultiReader(input1, input2))
+	r := io.NopCloser(io.MultiReader(input1, input2))
 	b := &blush.Blush{
 		Finders: []blush.Finder{match},
 		Reader:  r,
 	}
 	p := make([]byte, len(b1))
 	_, err := b.Read(p)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(t, err)
 	err = b.Close()
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
+
 	n, err := b.Read(p)
-	if n != 0 {
-		t.Errorf("b.Read(): n = %d, want 0", n)
-	}
-	if err != blush.ErrClosed {
-		t.Errorf("b.Read(): err = %v, want %v", err, blush.ErrClosed)
-	}
+	assert.True(t, errors.Is(err, blush.ErrClosed))
+	assert.Zero(t, n)
 }
 
 func TestBlushReadLongOneLineText(t *testing.T) {
+	t.Parallel()
 	head := strings.Repeat("a", 10000)
 	tail := strings.Repeat("b", 10000)
 	input := bytes.NewBuffer([]byte(head + " FINDME " + tail))
 	match := blush.NewExact("FINDME", blush.Blue)
-	r := ioutil.NopCloser(input)
+	r := io.NopCloser(input)
 	b := &blush.Blush{
 		Finders: []blush.Finder{match},
 		Reader:  r,
 	}
 	p := make([]byte, 20)
 	_, err := b.Read(p)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(t, err)
 	err = b.Close()
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 	n, err := b.Read(p)
-	if n != 0 {
-		t.Errorf("b.Read(): n = %d, want 0", n)
-	}
-	if err != blush.ErrClosed {
-		t.Errorf("b.Read(): err = %v, want %v", err, blush.ErrClosed)
-	}
+	assert.True(t, errors.Is(err, blush.ErrClosed))
+	assert.Zero(t, n)
 }
 
 func TestPrintName(t *testing.T) {
+	t.Parallel()
 	line1 := "line one\n"
 	line2 := "line two\n"
-	r1 := ioutil.NopCloser(bytes.NewBuffer([]byte(line1)))
-	r2 := ioutil.NopCloser(bytes.NewBuffer([]byte(line2)))
+	r1 := io.NopCloser(bytes.NewBuffer([]byte(line1)))
+	r2 := io.NopCloser(bytes.NewBuffer([]byte(line2)))
 	name1 := "reader1"
 	name2 := "reader2"
 	r, err := reader.NewMultiReader(
 		reader.WithReader(name1, r1),
 		reader.WithReader(name2, r2),
 	)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 	b := blush.Blush{
 		Reader:       r,
 		Finders:      []blush.Finder{blush.NewExact("line", blush.NoColour)},
 		WithFileName: true,
 	}
-	buf := new(bytes.Buffer)
+	buf := &bytes.Buffer{}
 	n, err := b.WriteTo(buf)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 	total := len(line1+line2+name1+name2) + len(blush.Separator)*2
-	if int(n) != total {
-		t.Errorf("total reads = %d, want %d", n, total)
-	}
+	assert.EqualValues(t, total, n)
+
 	s := strings.Split(buf.String(), "\n")
-	if !strings.Contains(s[0], name1) {
-		t.Errorf("want `%s` in `%s`", name1, s[0])
-	}
-	if !strings.Contains(s[1], name2) {
-		t.Fatalf("want `%s` in `%s`", name2, s[1])
-	}
+	assert.Contains(t, s[0], name1)
+	assert.Contains(t, s[1], name2)
 }
 
 // testing stdin should not print the name
 func TestStdinPrintName(t *testing.T) {
+	t.Parallel()
 	input := "line one"
 	oldStdin := os.Stdin
 	f, err := ioutil.TempFile("", "blush_stdin")
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 	defer func() {
 		if err = os.Remove(f.Name()); err != nil {
 			t.Error(err)
@@ -566,34 +449,24 @@ func TestStdinPrintName(t *testing.T) {
 		Finders:      []blush.Finder{blush.NewExact("line", blush.NoColour)},
 		WithFileName: true,
 	}
-	buf := new(bytes.Buffer)
+	buf := &bytes.Buffer{}
 	_, err = b.WriteTo(buf)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if buf.String() != input {
-		t.Errorf("buf.String() = `%s`, want `%s`", buf.String(), input)
-	}
-	if strings.Contains(buf.String(), f.Name()) {
-		t.Errorf("buf.String() = `%s`, don't want `%s` in it", buf.String(), f.Name())
-	}
+	assert.NoError(t, err)
+
+	assert.EqualValues(t, input, buf.String())
+	assert.NotContains(t, buf.String(), f.Name())
 }
 
 func TestPrintFileName(t *testing.T) {
-	path, err := ioutil.TempDir("", "blush_name")
-	if err != nil {
-		t.Fatal(err)
-	}
-	f1, err := ioutil.TempFile(path, "blush_name")
-	if err != nil {
-		t.Fatal(err)
-	}
-	f2, err := ioutil.TempFile(path, "blush_name")
-	if err != nil {
-		t.Fatal(err)
-	}
+	t.Parallel()
+	p, err := ioutil.TempDir("", "blush_name")
+	assert.NoError(t, err)
+	f1, err := ioutil.TempFile(p, "blush_name")
+	assert.NoError(t, err)
+	f2, err := ioutil.TempFile(p, "blush_name")
+	assert.NoError(t, err)
 	defer func() {
-		if err = os.RemoveAll(path); err != nil {
+		if err = os.RemoveAll(p); err != nil {
 			t.Error(err)
 		}
 	}()
@@ -611,26 +484,21 @@ func TestPrintFileName(t *testing.T) {
 		{"without filename", false, len(line1 + line2), false},
 	}
 	for _, tc := range tcs {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			r, err := reader.NewMultiReader(
-				reader.WithPaths([]string{path}, false),
+				reader.WithPaths([]string{p}, false),
 			)
-			if err != nil {
-				t.Fatal(err)
-			}
+			assert.NoError(t, err)
 			b := blush.Blush{
 				Reader:       r,
 				Finders:      []blush.Finder{blush.NewExact("line", blush.NoColour)},
 				WithFileName: tc.withFilename,
 			}
-			buf := new(bytes.Buffer)
+			buf := &bytes.Buffer{}
 			n, err := b.WriteTo(buf)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if int(n) != tc.wantLen {
-				t.Errorf("total reads = %d, want %d", n, tc.wantLen)
-			}
+			assert.NoError(t, err)
+			assert.EqualValues(t, tc.wantLen, n)
 			notStr := "not"
 			if tc.wantFilenames {
 				notStr = ""
@@ -647,6 +515,7 @@ func TestPrintFileName(t *testing.T) {
 
 // reading with a small byte slice until the read is done.
 func TestReadContiniously(t *testing.T) {
+	t.Parallel()
 	var (
 		ret   []byte
 		p     = make([]byte, 2)
@@ -654,7 +523,7 @@ func TestReadContiniously(t *testing.T) {
 		input = "one two three four\nfive six three seven"
 	)
 	match := blush.NewExact("three", blush.Blue)
-	r := ioutil.NopCloser(bytes.NewBufferString(input))
+	r := io.NopCloser(bytes.NewBufferString(input))
 	b := &blush.Blush{
 		Finders: []blush.Finder{match},
 		Reader:  r,
@@ -666,161 +535,121 @@ func TestReadContiniously(t *testing.T) {
 		}
 		count++
 		_, err := b.Read(p)
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			ret = append(ret, p...)
 			break
 		}
-		if err != nil {
-			t.Error(err)
-		}
+		assert.NoError(t, err)
 		ret = append(ret, p...)
 	}
 	if c := strings.Count(string(ret), "three"); c != 2 {
 		t.Errorf("count %s = %d, want %d", "three", c, 2)
 	}
 	for _, s := range []string{"one", "two", "three", "four", "five", "six", "seven"} {
-		if !strings.Contains(string(ret), s) {
-			t.Errorf("`%s` not found in `%s`", s, ret)
-		}
+		assert.Contains(t, string(ret), s)
 	}
 }
 
 func TestReadMiddleOfMatch(t *testing.T) {
+	t.Parallel()
 	var (
 		search = "aa this aa"
 		match  = blush.NewExact("this", blush.Blue)
 		p      = make([]byte, (len(search)+len(match.String()))/2)
 		ret    []byte
 	)
-	r := ioutil.NopCloser(bytes.NewBufferString(search))
+	r := io.NopCloser(bytes.NewBufferString(search))
 	b := &blush.Blush{
 		Finders: []blush.Finder{match},
 		Reader:  r,
 	}
 	for i := 0; i < 2; i++ {
 		_, err := b.Read(p)
-		if err != nil && err != io.EOF {
+		if err != nil && !errors.Is(err, io.EOF) {
 			t.Fatal(err)
 		}
 
 		ret = append(ret, p...)
 	}
-	if !strings.Contains(string(ret), "this") {
-		t.Errorf("`%s` not found in `%s`", "this", ret)
-	}
+	assert.Contains(t, string(ret), "this")
 }
 
 func TestReadComplete(t *testing.T) {
+	t.Parallel()
 	input := "123456789"
 	match := blush.NewExact("1", blush.NoColour)
-	r := ioutil.NopCloser(bytes.NewBufferString(input))
+	r := io.NopCloser(bytes.NewBufferString(input))
 	b := &blush.Blush{
 		Finders: []blush.Finder{match},
 		Reader:  r,
 	}
 	p := make([]byte, 10)
 	n, err := b.Read(p)
-	if n != len(input) {
-		t.Errorf("n = %d, want %d", n, len(input))
-	}
-	if err != io.EOF {
-		t.Errorf("err = %v, want %v", err, io.EOF)
-	}
-	if string(bytes.Trim(p, "\x00")) != input {
-		t.Errorf("p = `%v: %s`, want `%v: %s`", p, p, input, input)
-	}
+	assert.Len(t, input, n)
+	assert.True(t, errors.Is(err, io.EOF))
+	assert.EqualValues(t, input, string(bytes.Trim(p, "\x00")))
 	p = make([]byte, 4)
 	n, err = b.Read(p)
-	if n != 0 {
-		t.Errorf("n = %d, want %d", n, 0)
-	}
-	if err != io.EOF {
-		t.Errorf("err = %v, want %v", err, io.EOF)
-	}
-	if string(bytes.Trim(p, "\x00")) != "" {
-		t.Errorf("p = `%v: %s`, want ``", p, p)
-	}
+	assert.Zero(t, n)
+	assert.True(t, errors.Is(err, io.EOF))
+	assert.Empty(t, string(bytes.Trim(p, "\x00")))
 }
 
 func TestReadPartComplete(t *testing.T) {
+	t.Parallel()
 	input := "123456789"
 	match := blush.NewExact("1", blush.NoColour)
-	r := ioutil.NopCloser(bytes.NewBufferString(input))
+	r := io.NopCloser(bytes.NewBufferString(input))
 	b := &blush.Blush{
 		Finders: []blush.Finder{match},
 		Reader:  r,
 	}
 	p := make([]byte, 3)
 	n, err := b.Read(p)
-	if n != 3 {
-		t.Errorf("n = %d, want %d", n, 3)
-	}
-	if err != nil {
-		t.Errorf("err = %v, want %v", err, nil)
-	}
-	if string(bytes.Trim(p, "\x00")) != "123" {
-		t.Errorf("p = `%v: %s`, want `%v: %s`", p, p, "123", "123")
-	}
+	assert.EqualValues(t, 3, n)
+	assert.NoError(t, err)
+	assert.EqualValues(t, string(bytes.Trim(p, "\x00")), "123")
+
 	p = make([]byte, 6)
 	n, err = b.Read(p)
-	if n != 6 {
-		t.Errorf("n = %d, want %d", n, 6)
-	}
-	if err != nil {
-		t.Errorf("err = %v, want %v", err, nil)
-	}
-	if string(bytes.Trim(p, "\x00")) != "456789" {
-		t.Errorf("p = `%v: %s`, want `%v: %s`", p, p, "456789", "456789")
-	}
+	assert.NoError(t, err)
+	assert.EqualValues(t, 6, n)
+	assert.EqualValues(t, string(bytes.Trim(p, "\x00")), "456789")
 }
 
 func TestReadPartPartOver(t *testing.T) {
+	t.Parallel()
 	input := "123456789"
 	match := blush.NewExact("1", blush.NoColour)
-	r := ioutil.NopCloser(bytes.NewBufferString(input))
+	r := io.NopCloser(bytes.NewBufferString(input))
 	b := &blush.Blush{
 		Finders: []blush.Finder{match},
 		Reader:  r,
 	}
 	p := make([]byte, 3)
 	n, err := b.Read(p)
-	if n != 3 {
-		t.Errorf("n = %d, want %d", n, 3)
-	}
-	if err != nil {
-		t.Errorf("err = %v, want %v", err, nil)
-	}
-	if string(bytes.Trim(p, "\x00")) != "123" {
-		t.Errorf("p = `%v: %s`, want `%v: %s`", p, p, "123", "123")
-	}
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3, n)
+	assert.EqualValues(t, string(bytes.Trim(p, "\x00")), "123")
+
 	p = make([]byte, 3)
 	n, err = b.Read(p)
-	if n != 3 {
-		t.Errorf("n = %d, want %d", n, 3)
-	}
-	if err != nil {
-		t.Errorf("err = %v, want %v", err, nil)
-	}
-	if string(bytes.Trim(p, "\x00")) != "456" {
-		t.Errorf("p = `%v: %s`, want `%v: %s`", p, p, "456", "456")
-	}
+	assert.EqualValues(t, 3, n)
+	assert.NoError(t, err)
+	assert.EqualValues(t, string(bytes.Trim(p, "\x00")), "456")
+
 	p = make([]byte, 10)
 	n, err = b.Read(p)
-	if n != 3 {
-		t.Errorf("n = %d, want %d", n, 3)
-	}
-	if err != io.EOF {
-		t.Errorf("err = %v, want %v", err, io.EOF)
-	}
-	if string(bytes.Trim(p, "\x00")) != "789" {
-		t.Errorf("p = `%v: %s`, want `%v: %s`", p, p, "789", "789")
-	}
+	assert.EqualValues(t, 3, n)
+	assert.True(t, errors.Is(err, io.EOF))
+	assert.EqualValues(t, string(bytes.Trim(p, "\x00")), "789")
 }
 
 func TestReadMultiLine(t *testing.T) {
+	t.Parallel()
 	input := "line1\nline2\nline3\nline4\n"
 	match := blush.NewExact("l", blush.NoColour)
-	r := ioutil.NopCloser(bytes.NewBufferString(input))
+	r := io.NopCloser(bytes.NewBufferString(input))
 	b := &blush.Blush{
 		Finders: []blush.Finder{match},
 		Reader:  r,
@@ -844,45 +673,33 @@ func TestReadMultiLine(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			p := make([]byte, tc.length)
 			n, err := b.Read(p)
-			if err != tc.wantErr {
-				t.Errorf("err = %v, want %v", err, tc.wantErr)
-			}
-			if n != tc.wantLen {
-				t.Errorf("n = %d, want %d", n, tc.wantLen)
-			}
-			if string(bytes.Trim(p, "\x00")) != tc.want {
-				t.Errorf("p = `%v: %s`, want `%v: %s`", p, p, tc.want, tc.want)
-			}
+			assert.True(t, errors.Is(err, tc.wantErr))
+			assert.EqualValues(t, tc.wantLen, n)
+			assert.EqualValues(t, tc.want, string(bytes.Trim(p, "\x00")))
 		})
 	}
 }
 
 func TestReadWriteToMode(t *testing.T) {
+	t.Parallel()
 	p := make([]byte, 1)
-	r := ioutil.NopCloser(bytes.NewBufferString("input"))
+	r := io.NopCloser(bytes.NewBufferString("input"))
 	b := &blush.Blush{
 		Finders: []blush.Finder{blush.NewExact("", blush.NoColour)},
 		Reader:  r,
 	}
 	_, err := b.Read(p)
-	if err != nil {
-		t.Errorf("err = %v, want nil", err)
-	}
-	_, err = b.WriteTo(new(bytes.Buffer))
-	if err != blush.ErrReadWriteMix {
-		t.Errorf("err = %v, want %v", err, blush.ErrReadWriteMix)
-	}
+	assert.NoError(t, err)
+	_, err = b.WriteTo(&bytes.Buffer{})
+	assert.True(t, errors.Is(err, blush.ErrReadWriteMix))
 
 	b = &blush.Blush{
 		Finders: []blush.Finder{blush.NewExact("", blush.NoColour)},
 		Reader:  r,
 	}
-	_, err = b.WriteTo(new(bytes.Buffer))
-	if err != nil {
-		t.Errorf("err = %v, want %v", err, nil)
-	}
+	_, err = b.WriteTo(&bytes.Buffer{})
+	assert.NoError(t, err)
+
 	_, err = b.Read(p)
-	if err != blush.ErrReadWriteMix {
-		t.Errorf("err = %v, want %v", err, blush.ErrReadWriteMix)
-	}
+	assert.True(t, errors.Is(err, blush.ErrReadWriteMix))
 }

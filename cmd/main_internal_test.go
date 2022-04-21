@@ -5,32 +5,31 @@ import (
 	"os"
 	"path"
 	"testing"
+
+	"github.com/alecthomas/assert"
 )
 
-func getPipe(t *testing.T) (*os.File, func()) {
+func getPipe(t *testing.T) *os.File {
+	t.Helper()
 	oldStdin := os.Stdin
 
 	file, err := ioutil.TempFile("", "blush_pipe")
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 	name := file.Name()
 	rmFile := func() {
-		if err = os.Remove(name); err != nil {
-			t.Error(err)
-		}
+		err := os.Remove(name)
+		assert.NoError(t, err)
 	}
 	file.Close()
 	rmFile()
 	file, err = os.OpenFile(name, os.O_CREATE|os.O_RDWR, os.ModeCharDevice|os.ModeDevice)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 	os.Stdin = file
-	return file, func() {
+	t.Cleanup(func() {
 		os.Stdin = oldStdin
 		rmFile()
-	}
+	})
+	return file
 }
 
 func stringSliceEq(a, b []string) bool {

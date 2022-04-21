@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -14,12 +15,11 @@ import (
 // blush.Blush instance.
 func Main() {
 	b, err := GetBlush(os.Args)
-	switch err {
-	case nil:
-	case errShowHelp:
+	if errors.Is(err, errShowHelp) {
 		fmt.Println(Usage)
 		return
-	default:
+	}
+	if err != nil {
 		log.Fatalf("%s\n%s", err, Help)
 		return // this return statement should be here to support tests.
 	}
@@ -31,7 +31,7 @@ func Main() {
 	sig := make(chan os.Signal, 1)
 	WaitForSignal(sig, os.Exit)
 	if _, err := io.Copy(os.Stdout, b); err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	}
 }
 

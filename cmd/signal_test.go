@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alecthomas/assert"
 	"github.com/arsham/blush/cmd"
 )
 
@@ -31,9 +32,7 @@ func TestCaptureSignals(t *testing.T) {
 			sig <- tc.signal
 			select {
 			case code := <-code:
-				if code != tc.code {
-					t.Errorf("exit code = %d, want %d", code, tc.code)
-				}
+				assert.Equal(t, tc.code, code)
 			case <-time.After(500 * time.Millisecond):
 				t.Error("exit function wasn't called")
 			}

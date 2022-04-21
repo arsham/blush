@@ -26,7 +26,6 @@
 //  | N/A           | -i       | Case insensitive matching                      |
 //  | N/A           | -R       | Recursive                                      |
 //  | --no-colour   | N/A      | Doesn't colourize matches.                     |
-//  | --no-color    | N/A      | Same as --no-colour                            |
 //  | --no-filename | -h       | Suppress the prefixing of file names on output |
 //  +---------------+----------+------------------------------------------------+
 //

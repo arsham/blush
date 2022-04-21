@@ -1,18 +1,21 @@
 package tools_test
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/alecthomas/assert"
 	"github.com/arsham/blush/internal/tools"
 )
 
 func TestIsPlainText(t *testing.T) {
+	t.Parallel()
 	tcs := []struct {
 		name  string
 		input string
 		want  bool
 	}{
-		{"null", string(0), true},
+		{"null", fmt.Sprintf("%d", 0), true},
 		{"space", " ", true},
 		{"return", "\r", true},
 		{"line feed", "\n", true},
@@ -24,11 +27,10 @@ func TestIsPlainText(t *testing.T) {
 		{"bell in middle", "a\bc", false},
 	}
 	for _, tc := range tcs {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			got := tools.IsPlainText(tc.input)
-			if got != tc.want {
-				t.Errorf("tools.IsPlainText() = %t, want %t", tools.IsPlainText(tc.input), tc.want)
-			}
+			assert.Equal(t, tc.want, got)
 		})
 	}
 }

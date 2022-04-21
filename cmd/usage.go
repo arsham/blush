@@ -6,7 +6,8 @@ import "errors"
 var (
 	errShowHelp = errors.New("show errors")
 
-	Help  = "Usage: blush [OPTION]... PATTERN [FILE]...\nTry 'blush --help' for more information."
+	Help = "Usage: blush [OPTION]... PATTERN [FILE]...\nTry 'blush --help' for more information."
+	// nolint:misspell // it's ok.
 	Usage = `Usage: blush [OPTION]... PATTERN [FILE]...
 Colours:
     -r, --red       Match decorated with red colour. See Stock Colours section.

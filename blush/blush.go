@@ -29,6 +29,7 @@ const (
 // write the filename before it writes the output. Read and WriteTo will return
 // ErrReadWriteMix if both Read and WriteTo are called on the same object. See
 // package docs for more details.
+// nolint:govet // we are expecting lots of these objects.
 type Blush struct {
 	Finders      []Finder
 	Reader       io.ReadCloser
@@ -54,7 +55,8 @@ func (b *Blush) Read(p []byte) (n int, err error) {
 		return 0, ErrReadWriteMix
 	}
 	if b.mode != readMode {
-		if err = b.setup(readMode); err != nil {
+		err := b.setup(readMode)
+		if err != nil {
 			return 0, err
 		}
 	}
@@ -119,7 +121,7 @@ func (b *Blush) setup(m mode) error {
 	return nil
 }
 
-func (b Blush) decorate(input string) (string, bool) {
+func (b *Blush) decorate(input string) (string, bool) {
 	str, ok := lookInto(b.Finders, input)
 	if ok || b.NoCut {
 		var prefix string
@@ -131,7 +133,7 @@ func (b Blush) decorate(input string) (string, bool) {
 	return "", false
 }
 
-func (b Blush) readLines() {
+func (b *Blush) readLines() {
 	var (
 		ok bool
 		sc = bufio.NewReader(b.Reader)
@@ -148,7 +150,7 @@ func (b Blush) readLines() {
 	close(b.readLineCh)
 }
 
-func (b Blush) transfer() {
+func (b *Blush) transfer() {
 	for line := range b.readLineCh {
 		for _, c := range line {
 			b.readCh <- c

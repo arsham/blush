@@ -12,17 +12,18 @@ import (
 // shrink the input as they go. Therefore the order of calls matters in some
 // cases.
 type args struct {
+	paths       []string
+	matches     []string
+	remaining   []string
+	finders     []blush.Finder
 	colour      bool
 	noFilename  bool
 	recursive   bool
 	insensitive bool
 	stdin       bool
-	paths       []string
-	matches     []string
-	remaining   []string
-	finders     []blush.Finder
 }
 
+// nolint:misspell // it's ok.
 func newArgs(input ...string) (*args, error) {
 	a := &args{
 		matches:   make([]string, 0),
@@ -47,7 +48,7 @@ func newArgs(input ...string) (*args, error) {
 
 // hasArgs removes any occurring `args` argument.
 func (a *args) hasArgs(args ...string) (found bool) {
-	remains := a.remaining[:]
+	remains := a.remaining
 LOOP:
 	for _, arg := range args {
 		for i, ar := range a.remaining {

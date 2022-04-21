@@ -3,42 +3,31 @@ package reader_test
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 	"path"
-	"strings"
 	"testing"
 
+	"github.com/alecthomas/assert"
 	"github.com/arsham/blush/internal/reader"
 )
 
 func TestWithReader(t *testing.T) {
+	t.Parallel()
 	m, err := reader.NewMultiReader(reader.WithReader("name", nil))
-	if err == nil {
-		t.Error("err = nil, want error")
-	}
-	if m != nil {
-		t.Errorf("m = %v, want nil", m)
-	}
+	assert.Error(t, err)
+	assert.Nil(t, m)
 
-	r := ioutil.NopCloser(new(bytes.Buffer))
+	r := io.NopCloser(&bytes.Buffer{})
 	m, err = reader.NewMultiReader(reader.WithReader("name", r))
-	if err != nil {
-		t.Errorf("err = %v, want nil", err)
-	}
-	if m == nil {
-		t.Error("m = nil, want *blush.MultiReader")
-	}
+	assert.NoError(t, err)
+	assert.NotNil(t, m)
 
 	m, err = reader.NewMultiReader(reader.WithReader("", r))
-	if err != nil {
-		t.Errorf("err = %v, want nil", err)
-	}
-	if m == nil {
-		t.Error("m = nil, want *blush.MultiReader")
-	}
+	assert.NoError(t, err)
+	assert.NotNil(t, m)
 }
 
 func TestWithReaderMultipleReadersClose(t *testing.T) {
+	t.Parallel()
 	var called []string
 	input1 := "afmBEswIRYosG7"
 	input2 := "UbMFeIFjvAhdA3sdT"
@@ -57,58 +46,38 @@ func TestWithReaderMultipleReadersClose(t *testing.T) {
 		},
 	}
 	m, err := reader.NewMultiReader(reader.WithReader("r1", r1), reader.WithReader("r2", r2))
-	if err != nil {
-		t.Errorf("err = %v, want nil", err)
-	}
-	if m == nil {
-		t.Fatal("m = nil, want *blush.MultiReader")
-	}
+	assert.NoError(t, err)
 
 	b := make([]byte, 100)
 	_, err = m.Read(b)
+	assert.NoError(t, err)
+	assert.EqualValues(t, input1, bytes.Trim(b, "\x00"))
 
-	if err != nil {
-		t.Errorf("err = %v, want nil", err)
-	}
-	if string(bytes.Trim(b, "\x00")) != input1 {
-		t.Errorf("b = %s, want %s", b, input1)
-	}
 	_, err = m.Read(b)
-	if !inStringSlice("r1", called) {
-		t.Error("m.Close() didn't close r1")
-	}
-	if err != nil {
-		t.Errorf("err = %v, want nil", err)
-	}
-	if string(bytes.Trim(b, "\x00")) != input2 {
-		t.Errorf("b = %s, want %s", b, input2)
-	}
+	assert.NoError(t, err)
+	assert.True(t, inSlice("r1", called))
+	assert.EqualValues(t, input2, bytes.Trim(b, "\x00"))
+
 	_, err = m.Read(b)
-	if err != io.EOF {
-		t.Errorf("err = %v, want io.EOF", err)
-	}
-	if !inStringSlice("r2", called) {
-		t.Error("m.Close() didn't close r2")
-	}
+	assert.EqualError(t, io.EOF, err.Error())
+	assert.True(t, inSlice("r2", called))
 }
 
 func TestWithReaderMultipleReadersError(t *testing.T) {
+	t.Parallel()
 	r := nopCloser{
-		Reader: new(bytes.Buffer),
+		Reader: &bytes.Buffer{},
 		closeFunc: func() error {
 			return nil
 		},
 	}
 	m, err := reader.NewMultiReader(reader.WithReader("r", r), nil)
-	if err == nil {
-		t.Error("err = nil, want error")
-	}
-	if m != nil {
-		t.Errorf("m = %v, want nil", m)
-	}
+	assert.Error(t, err)
+	assert.Nil(t, m)
 }
 
 func TestWithPathsError(t *testing.T) {
+	t.Parallel()
 	tcs := []struct {
 		name  string
 		input []string
@@ -120,20 +89,18 @@ func TestWithPathsError(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			input := reader.WithPaths(tc.input, true)
 			m, err := reader.NewMultiReader(input)
-			if err == nil {
-				t.Error("NewMultiReader(WithPaths): err = nil, want error")
-			}
-			if m != nil {
-				t.Errorf("NewMultiReader(WithPaths): m = %v, want nil", m)
-			}
+			assert.Error(t, err)
+			assert.Nil(t, m)
 		})
 	}
 }
 
 func TestNewMultiReaderWithPaths(t *testing.T) {
+	t.Parallel()
 	var (
 		c1 = "VJSNS5IeLCtEB"
 		c2 = "kkNL8vGNJn"
@@ -145,111 +112,74 @@ func TestNewMultiReaderWithPaths(t *testing.T) {
 		{"ab.txt", c3},
 	}
 
-	dirs, cleanup := setup(t, input)
-	defer cleanup()
+	dirs := setup(t, input)
 	m, err := reader.NewMultiReader(reader.WithPaths(dirs, false))
-	if err != nil {
-		t.Errorf("NewMultiReader(WithPaths(): err = %v, want nil", err)
-	}
-	if m == nil {
-		t.Fatal("NewMultiReader(WithPaths(): m = nil, want *blush.MultiReader")
-	}
-	if err = m.Close(); err != nil {
-		t.Error(err)
-	}
+	assert.NoError(t, err)
+	assert.NotNil(t, m)
+	err = m.Close()
+	assert.NoError(t, err)
 }
 
 func TestMultiReaderReadOneReader(t *testing.T) {
-	input := "3wAgvZ4bSfQYawl5OEEg"
-	r := ioutil.NopCloser(bytes.NewBufferString(input))
+	t.Parallel()
+	input := "sdlksjdljfQYawl5OEEg"
+	r := io.NopCloser(bytes.NewBufferString(input))
 	m, err := reader.NewMultiReader(reader.WithReader("r", r))
-	if err != nil {
-		t.Errorf("err = %v, want nil", err)
-	}
-	if m == nil {
-		t.Fatal("m = nil, want *blush.MultiReader")
-	}
+	assert.NoError(t, err)
+	assert.NotNil(t, m)
+
 	b := make([]byte, len(input))
 	n, err := m.Read(b)
-	if err != nil {
-		t.Errorf("Read(): err = %v, want nil", err)
-	}
-	if n != len(input) {
-		t.Errorf("Read(): n = %d, want %d", n, len(input))
-	}
-	if string(b) != input {
-		t.Errorf("b = %s, want %s", b, input)
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, len(input), n)
+	assert.EqualValues(t, input, b)
 
 	n, err = m.Read(b)
-	if err != io.EOF {
-		t.Errorf("Read(): err = %v, want io.EOF", err)
-	}
-	if n != 0 {
-		t.Errorf("Read(): n = %d, want %d", n, 0)
-	}
+	assert.EqualError(t, err, io.EOF.Error())
+	assert.Zero(t, n)
 }
 
 func TestMultiReaderReadZeroBytes(t *testing.T) {
+	t.Parallel()
 	input := "3wAgvZ4bSfQYawl5OEEg"
-	r := ioutil.NopCloser(bytes.NewBufferString(input))
+	r := io.NopCloser(bytes.NewBufferString(input))
 	m, err := reader.NewMultiReader(reader.WithReader("r", r))
-	if err != nil {
-		t.Errorf("err = %v, want nil", err)
-	}
-	if m == nil {
-		t.Fatal("m = nil, want *blush.MultiReader")
-	}
+	assert.NoError(t, err)
+	assert.NotNil(t, m)
+
 	b := make([]byte, 0)
 	n, err := m.Read(b)
-	if err != nil {
-		t.Errorf("Read(): err = %v, want nil", err)
-	}
-	if n != 0 {
-		t.Errorf("Read(): n = %d, want %d", n, 0)
-	}
-	if string(b) != "" {
-		t.Errorf("b = %s, want %s", b, "")
-	}
+	assert.NoError(t, err)
+	assert.Zero(t, n)
+	assert.Empty(t, b)
 }
 
 func TestMultiReaderReadOneReaderMoreSpace(t *testing.T) {
+	t.Parallel()
 	input := "3wAgvZ4bSfQYawl5OEEg"
-	r := ioutil.NopCloser(bytes.NewBufferString(input))
+	r := io.NopCloser(bytes.NewBufferString(input))
 	m, err := reader.NewMultiReader(reader.WithReader("r", r))
-	if err != nil {
-		t.Errorf("err = %v, want nil", err)
-	}
-	if m == nil {
-		t.Fatal("m = nil, want *blush.MultiReader")
-	}
+	assert.NoError(t, err)
+	assert.NotNil(t, m)
 	b := make([]byte, len(input)+1)
 	n, err := m.Read(b)
-	if err != nil {
-		t.Errorf("Read(): err = %v, want nil", err)
-	}
-	if n != len(input) {
-		t.Errorf("Read(): n = %d, want %d", n, len(input))
-	}
-	if string(bytes.Trim(b, "\x00")) != input {
-		t.Errorf("b = %s, want %s", b, input)
-	}
+	assert.NoError(t, err)
+	assert.EqualValues(t, len(input), n)
+	assert.EqualValues(t, input, bytes.Trim(b, "\x00"))
 }
 
 func TestMultiReaderReadMultipleReaders(t *testing.T) {
+	t.Parallel()
 	input := []string{"P5tyugWXFn", "b8YbUO7pMX3G8j4Bi"}
-	r1 := ioutil.NopCloser(bytes.NewBufferString(input[0]))
-	r2 := ioutil.NopCloser(bytes.NewBufferString(input[1]))
+	r1 := io.NopCloser(bytes.NewBufferString(input[0]))
+	r2 := io.NopCloser(bytes.NewBufferString(input[1]))
 	m, err := reader.NewMultiReader(
 		reader.WithReader("r1", r1),
 		reader.WithReader("r2", r2),
 	)
-	if err != nil {
-		t.Errorf("err = %v, want nil", err)
-	}
-	if m == nil {
-		t.Fatal("m = nil, want *blush.MultiReader")
-	}
+	assert.NoError(t, err)
+	assert.NotNil(t, m)
+
 	tcs := []struct {
 		name    string
 		b       []byte
@@ -262,35 +192,27 @@ func TestMultiReaderReadMultipleReaders(t *testing.T) {
 		{"nothing left", make([]byte, 10), io.EOF, 0, ""},
 	}
 	for _, tc := range tcs {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			n, err := m.Read(tc.b)
-			if err != tc.wantErr {
-				t.Errorf("Read(): err = %v, want %v", err, tc.wantErr)
-			}
-			if n != tc.wantLen {
-				t.Errorf("Read(): n = %d, want %d", n, tc.wantLen)
-			}
-			if string(bytes.Trim(tc.b, "\x00")) != tc.wantOut {
-				t.Errorf("tc.b = `%b`, want `%b`", tc.b, []byte(tc.wantOut))
-			}
+			assert.Equal(t, err, tc.wantErr, "error")
+			assert.EqualValues(t, tc.wantLen, n)
+			assert.Equal(t, tc.wantOut, string(bytes.Trim(tc.b, "\x00")), "output")
 		})
 	}
 }
 
 func TestMultiReaderNames(t *testing.T) {
+	t.Parallel()
 	input := []string{"Mw0mxekLYOpXaKl8PVT", "1V5MjHUXYTPChW"}
-	r1 := ioutil.NopCloser(bytes.NewBufferString(input[0]))
-	r2 := ioutil.NopCloser(bytes.NewBufferString(input[1]))
+	r1 := io.NopCloser(bytes.NewBufferString(input[0]))
+	r2 := io.NopCloser(bytes.NewBufferString(input[1]))
 	m, err := reader.NewMultiReader(
 		reader.WithReader("r1", r1),
 		reader.WithReader("r2", r2),
 	)
-	if err != nil {
-		t.Errorf("err = %v, want nil", err)
-	}
-	if m == nil {
-		t.Fatal("m = nil, want *blush.MultiReader")
-	}
+	assert.NoError(t, err)
+	assert.NotNil(t, m)
 	b := make([]byte, 100)
 	tcs := []struct {
 		name    string
@@ -301,19 +223,17 @@ func TestMultiReaderNames(t *testing.T) {
 		{"", io.EOF},
 	}
 	for _, tc := range tcs {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := m.Read(b)
-			if err != tc.wantErr {
-				t.Errorf("m.Read(): err = %v, want %v", err, tc.wantErr)
-			}
-			if m.FileName() != tc.name {
-				t.Errorf("m.FileName() = %s, want %s", m.FileName(), tc.name)
-			}
+			assert.Equal(t, err, tc.wantErr, "error")
+			assert.Equal(t, tc.name, m.FileName())
 		})
 	}
 }
 
 func TestNewMultiReaderWithPathsRead(t *testing.T) {
+	t.Parallel()
 	var (
 		c1 = "VJSNS5IeLCtEB"
 		c2 = "kkNL8vGNJn"
@@ -325,33 +245,25 @@ func TestNewMultiReaderWithPathsRead(t *testing.T) {
 		{"ab.txt", c3},
 	}
 
-	dirs, cleanup := setup(t, input)
-	defer cleanup()
+	dirs := setup(t, input)
 	w, err := reader.NewMultiReader(reader.WithPaths(dirs, false))
-	if err != nil {
-		t.Fatalf("NewMultiReaderFromPaths(): err = %v, want nil", err)
-	}
-	if w == nil {
-		t.Fatal("NewMultiReaderFromPaths(): w = nil, want *blush.MultiReader")
-	}
-	defer func() {
-		if err = w.Close(); err != nil {
-			t.Error(err)
-		}
-	}()
-	buf := new(bytes.Buffer)
+	assert.NoError(t, err)
+	assert.NotNil(t, w)
+	t.Cleanup(func() {
+		err = w.Close()
+		assert.NoError(t, err)
+	})
+
+	buf := &bytes.Buffer{}
 	_, err = buf.ReadFrom(w)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(t, err)
 	for _, s := range []string{c1, c2, c3} {
-		if !strings.Contains(buf.String(), s) {
-			t.Errorf("`%s` not found in `%s`", s, buf.String())
-		}
+		assert.Contains(t, buf.String(), s)
 	}
 }
 
 func TestNewMultiReaderRecursive(t *testing.T) {
+	t.Parallel()
 	var (
 		c1 = "1JQey4agQ3w9pqg3"
 		c2 = "7ToNRMgsOAR6A"
@@ -363,34 +275,28 @@ func TestNewMultiReaderRecursive(t *testing.T) {
 		{"a/b/c.txt", c3},
 	}
 
-	dirs, cleanup := setup(t, input)
-	defer cleanup()
+	dirs := setup(t, input)
 	base := path.Join(path.Dir(dirs[0]), "a")
 	w, err := reader.NewMultiReader(reader.WithPaths([]string{base}, true))
-	if err != nil {
-		t.Fatalf("NewMultiReaderFromPaths(): err = %v, want nil - %v", err, base)
-	}
-	if w == nil {
-		t.Fatal("NewMultiReaderFromPaths(): w = nil, want *blush.MultiReader")
-	}
-	defer func() {
-		if err = w.Close(); err != nil {
-			t.Error(err)
-		}
-	}()
-	buf := new(bytes.Buffer)
+	assert.NoError(t, err)
+	assert.NotNil(t, w)
+
+	t.Cleanup(func() {
+		err = w.Close()
+		assert.NoError(t, err)
+	})
+
+	buf := &bytes.Buffer{}
 	_, err = buf.ReadFrom(w)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(t, err)
+
 	for _, s := range []string{c1, c2, c3} {
-		if !strings.Contains(buf.String(), s) {
-			t.Errorf("`%s` not found in `%s`", s, buf.String())
-		}
+		assert.Contains(t, buf.String(), s)
 	}
 }
 
 func TestNewMultiReaderNonRecursive(t *testing.T) {
+	t.Parallel()
 	var (
 		c1 = "DRAjfSq2y"
 		c2 = "ht3xCIQ"
@@ -402,32 +308,22 @@ func TestNewMultiReaderNonRecursive(t *testing.T) {
 		{"a/b/c.txt", c3},
 	}
 
-	dirs, cleanup := setup(t, input)
-	defer cleanup()
+	dirs := setup(t, input)
 	base := path.Join(path.Dir(dirs[0]), "a")
 	w, err := reader.NewMultiReader(reader.WithPaths([]string{base}, false))
-	if err != nil {
-		t.Fatalf("NewMultiReaderFromPaths(): err = %v, want nil - %v", err, base)
-	}
-	if w == nil {
-		t.Fatal("NewMultiReaderFromPaths(): w = nil, want *blush.MultiReader")
-	}
-	defer func() {
-		if err = w.Close(); err != nil {
-			t.Error(err)
-		}
-	}()
-	buf := new(bytes.Buffer)
+	assert.NoError(t, err)
+	assert.NotNil(t, w)
+
+	t.Cleanup(func() {
+		err = w.Close()
+		assert.NoError(t, err)
+	})
+
+	buf := &bytes.Buffer{}
 	_, err = buf.ReadFrom(w)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(t, err)
 	for _, s := range []string{c1, c2} {
-		if !strings.Contains(buf.String(), s) {
-			t.Errorf("`%s` not found in `%s`", s, buf.String())
-		}
+		assert.Contains(t, buf.String(), s)
 	}
-	if strings.Contains(buf.String(), c3) {
-		t.Errorf("`%s` should not be found in `%s`", c3, buf.String())
-	}
+	assert.NotContains(t, buf.String(), c3)
 }

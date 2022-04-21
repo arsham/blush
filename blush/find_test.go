@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/alecthomas/assert"
 	"github.com/arsham/blush/blush"
 )
 
@@ -12,7 +13,9 @@ type colourer interface {
 	Colour() blush.Colour
 }
 
+// nolint:misspell // it's ok.
 func TestNewLocatorColours(t *testing.T) {
+	t.Parallel()
 	tcs := []struct {
 		name   string
 		colour string
@@ -53,42 +56,34 @@ func TestNewLocatorColours(t *testing.T) {
 		{"hash aaaaaaa", "#aaaaaaa", blush.DefaultColour},
 	}
 	for _, tc := range tcs {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			l := blush.NewLocator(tc.colour, "aaa", false)
 			c, ok := l.(colourer)
-			if !ok {
-				t.Fatalf("%v does not implement Colour() method", l)
-			}
-			if c.Colour() != tc.want {
-				t.Errorf("%s: c.Colour() = %#v, want %#v", tc.colour, c.Colour(), tc.want)
-			}
+			assert.True(t, ok)
+			assert.Equal(t, tc.want, c.Colour())
 		})
 	}
 }
 
 func TestNewLocatorExact(t *testing.T) {
+	t.Parallel()
 	l := blush.NewLocator("", "aaa", false)
-	if _, ok := l.(blush.Exact); !ok {
-		t.Errorf("l = %T, want *blush.Exact", l)
-	}
+	assert.IsType(t, blush.Exact{}, l)
 	l = blush.NewLocator("", "*aaa", false)
-	if _, ok := l.(blush.Exact); !ok {
-		t.Errorf("l = %T, want *blush.Exact", l)
-	}
+	assert.IsType(t, blush.Exact{}, l)
 }
 
 func TestNewLocatorIexact(t *testing.T) {
+	t.Parallel()
 	l := blush.NewLocator("", "aaa", true)
-	if _, ok := l.(blush.Iexact); !ok {
-		t.Errorf("l = %T, want *blush.Iexact", l)
-	}
+	assert.IsType(t, blush.Iexact{}, l)
 	l = blush.NewLocator("", "*aaa", true)
-	if _, ok := l.(blush.Iexact); !ok {
-		t.Errorf("l = %T, want *blush.Iexact", l)
-	}
+	assert.IsType(t, blush.Iexact{}, l)
 }
 
 func TestNewLocatorRx(t *testing.T) {
+	t.Parallel()
 	tcs := []struct {
 		name    string
 		input   string
@@ -103,51 +98,39 @@ func TestNewLocatorRx(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			l := blush.NewLocator("", tc.input, false)
-			if _, ok := l.(blush.Rx); !ok {
-				t.Errorf("l = %T, want *blush.Rx", l)
-			}
+			assert.IsType(t, blush.Rx{}, l)
 			l = blush.NewLocator("", tc.input, false)
-			if _, ok := l.(blush.Rx); !ok {
-				t.Errorf("l = %T, want *blush.Rx", l)
-			}
+			assert.IsType(t, blush.Rx{}, l)
 		})
 	}
 }
 
 func TestNewLocatorRxColours(t *testing.T) {
+	t.Parallel()
 	rx := blush.NewLocator("b", "a{3}", false)
 	want := "this " + blush.Colourise("aaa", blush.Blue) + "meeting"
 	got, ok := rx.Find("this aaameeting")
-	if got != want {
-		t.Errorf("got = `%s`, want `%s`", got, want)
-	}
-	if !ok {
-		t.Error("ok = false, want true")
-	}
+	assert.Equal(t, want, got)
+	assert.True(t, ok)
 }
 
 func TestExactNotFound(t *testing.T) {
+	t.Parallel()
 	l := blush.NewExact("nooooo", blush.NoColour)
 	got, ok := l.Find("yessss")
-	if got != "" {
-		t.Errorf("got = %s, want `%s`", got, "")
-	}
-	if ok {
-		t.Error("ok = true, want false")
-	}
+	assert.Empty(t, got)
+	assert.False(t, ok)
 }
 
 func TestExactFind(t *testing.T) {
+	t.Parallel()
 	l := blush.NewExact("nooooo", blush.NoColour)
 	got, ok := l.Find("yessss")
-	if got != "" {
-		t.Errorf("got = %s, want `%s`", got, "")
-	}
-	if ok {
-		t.Error("ok = true, want false")
-	}
+	assert.Empty(t, got)
+	assert.False(t, ok)
 
 	tcs := []struct {
 		name   string
@@ -164,39 +147,30 @@ func TestExactFind(t *testing.T) {
 		{"some parts blue", "aaa", blush.Blue, "bb aaa bb", "bb " + blush.Colourise("aaa", blush.Blue) + " bb", true},
 	}
 	for _, tc := range tcs {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			l := blush.NewExact(tc.search, tc.colour)
 			got, ok := l.Find(tc.input)
-			if got != tc.want {
-				t.Errorf("got = `%s`, want `%s`", got, tc.want)
-			}
-			if ok != tc.wantOk {
-				t.Errorf("ok = %t, want %t", ok, tc.wantOk)
-			}
+			assert.Equal(t, tc.want, got)
+			assert.Equal(t, tc.wantOk, ok)
 		})
 	}
 }
 
 func TestRxNotFound(t *testing.T) {
-	l := blush.NewRx(regexp.MustCompile("nooooo"), blush.NoColour)
+	t.Parallel()
+	l := blush.NewRx(regexp.MustCompile("no{5}"), blush.NoColour)
 	got, ok := l.Find("yessss")
-	if got != "" {
-		t.Errorf("got = %s, want `%s`", got, "")
-	}
-	if ok {
-		t.Error("ok = true, want false")
-	}
+	assert.Empty(t, got)
+	assert.False(t, ok)
 }
 
 func TestRxFind(t *testing.T) {
-	l := blush.NewRx(regexp.MustCompile("nooooo"), blush.NoColour)
+	t.Parallel()
+	l := blush.NewRx(regexp.MustCompile("no{5}"), blush.NoColour)
 	got, ok := l.Find("yessss")
-	if got != "" {
-		t.Errorf("got = %s, want `%s`", got, "")
-	}
-	if ok {
-		t.Error("ok = true, want false")
-	}
+	assert.Empty(t, got)
+	assert.False(t, ok)
 
 	tcs := []struct {
 		name   string
@@ -214,34 +188,27 @@ func TestRxFind(t *testing.T) {
 		{"some parts blue", "(aaa)", blush.Blue, "bb aaa bb", "bb " + blush.Colourise("aaa", blush.Blue) + " bb", true},
 	}
 	for _, tc := range tcs {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			l := blush.NewRx(regexp.MustCompile(tc.search), tc.colour)
 			got, ok := l.Find(tc.input)
-			if got != tc.want {
-				t.Errorf("got = `%s`, want `%s`", got, tc.want)
-			}
-			if ok != tc.wantOk {
-				t.Errorf("ok = %t, want %t", ok, tc.wantOk)
-			}
-			if l.Colour() != tc.colour {
-				t.Errorf("l.Colour() = %v, want %v", l.Colour(), tc.colour)
-			}
+			assert.Equal(t, tc.want, got)
+			assert.Equal(t, tc.wantOk, ok)
+			assert.Equal(t, tc.colour, l.Colour())
 		})
 	}
 }
 
 func TestIexactNotFound(t *testing.T) {
+	t.Parallel()
 	l := blush.NewIexact("nooooo", blush.NoColour)
 	got, ok := l.Find("yessss")
-	if got != "" {
-		t.Errorf("got = %s, want `%s`", got, "")
-	}
-	if ok {
-		t.Error("ok = true, want false")
-	}
+	assert.Empty(t, got)
+	assert.False(t, ok)
 }
 
 func TestIexact(t *testing.T) {
+	t.Parallel()
 	tcs := []struct {
 		name   string
 		search string
@@ -261,23 +228,19 @@ func TestIexact(t *testing.T) {
 		{"i some parts blue", "AAA", blush.Blue, "bb aaa bb", "bb " + blush.Colourise("aaa", blush.Blue) + " bb", true},
 	}
 	for _, tc := range tcs {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			l := blush.NewIexact(tc.search, tc.colour)
 			got, ok := l.Find(tc.input)
-			if got != tc.want {
-				t.Errorf("got = `%s`, want `%s`", got, tc.want)
-			}
-			if ok != tc.wantOk {
-				t.Errorf("ok = %t, want %t", ok, tc.wantOk)
-			}
-			if l.Colour() != tc.colour {
-				t.Errorf("l.Colour() = %v, want %v", l.Colour(), tc.colour)
-			}
+			assert.Equal(t, tc.want, got)
+			assert.Equal(t, tc.wantOk, ok)
+			assert.Equal(t, tc.colour, l.Colour())
 		})
 	}
 }
 
 func TestRxInsensitiveFind(t *testing.T) {
+	t.Parallel()
 	tcs := []struct {
 		name   string
 		search string
@@ -295,77 +258,50 @@ func TestRxInsensitiveFind(t *testing.T) {
 		{"some words blue long", "AAA?", "blue", "bb aaa bb", "bb " + blush.Colourise("aaa", blush.Blue) + " bb", true},
 	}
 	for _, tc := range tcs {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			l := blush.NewLocator(tc.colour, tc.search, true)
-			if _, ok := l.(blush.Rx); !ok {
-				t.Fatalf("l = %T, want blush.Rx", l)
-			}
+			assert.IsType(t, blush.Rx{}, l)
+
 			got, ok := l.Find(tc.input)
-			if got != tc.want {
-				t.Errorf("got = `%s`, want `%s`", got, tc.want)
-			}
-			if ok != tc.wantOk {
-				t.Errorf("ok = %t, want %t", ok, tc.wantOk)
-			}
+			assert.Equal(t, tc.want, got)
+			assert.Equal(t, tc.wantOk, ok)
 		})
 	}
 
 	rx := blush.NewLocator("b", "A{3}", true)
 	want := "this " + blush.Colourise("aaa", blush.Blue) + "meeting"
 	got, ok := rx.Find("this aaameeting")
-	if got != want {
-		t.Errorf("got = `%s`, want `%s`", got, want)
-	}
-	if !ok {
-		t.Error("ok = false, want true")
-	}
+	assert.Equal(t, want, got)
+	assert.True(t, ok)
 }
 
 func TestColourGroup(t *testing.T) {
+	t.Parallel()
 	for i := 0; i < 100; i++ {
 		l := blush.NewLocator(fmt.Sprintf("b%d", i), "aaa", false)
 		e, ok := l.(blush.Exact)
-		if !ok {
-			t.Fatalf("fact check: l = %T, want blush.Exact", l)
-		}
-		if e.Colour().Foreground != blush.FgBlue {
-			t.Errorf("e.Colour().Foreground = %v, want %v", e.Colour().Foreground, blush.FgBlue)
-		}
-		if e.Colour().Background == blush.NoRGB {
-			t.Errorf("e.Colour().Background = %v, want a different RGB", e.Colour().Background)
-		}
-		if e.Colour().Foreground == e.Colour().Background {
-			t.Errorf("e.Colour().Foreground = %v, e.Colour().Background = %v: want a different colour", e.Colour().Foreground, e.Colour().Background)
-		}
+		assert.True(t, ok)
+		assert.Equal(t, blush.FgBlue, e.Colour().Foreground)
+		assert.NotEqual(t, blush.NoRGB, e.Colour().Background)
+		assert.NotEqual(t, e.Colour().Background, e.Colour().Foreground)
 	}
 }
 
 func TestColourNewGroup(t *testing.T) {
-	var (
-		e  blush.Exact
-		ok bool
-	)
+	t.Parallel()
 	l := blush.NewLocator("b1", "aaa", false)
-	if e, ok = l.(blush.Exact); !ok {
-		t.Fatalf("fact check: l = %T, want blush.Exact", l)
-	}
+	assert.IsType(t, blush.Exact{}, l)
 
+	e := l.(blush.Exact)
 	c1 := e.Colour()
 	l = blush.NewLocator("b1", "aaa", false)
 	e = l.(blush.Exact)
-	if e.Colour() != c1 {
-		t.Errorf("e.Colour() = %v, want %v", e.Colour(), c1)
-	}
+	assert.EqualValues(t, c1, e.Colour())
 
 	l = blush.NewLocator("b2", "aaa", false)
 	e = l.(blush.Exact)
-	if e.Colour().Foreground != blush.FgBlue {
-		t.Errorf("e.Colour().Foreground = %v, want %v", e.Colour().Foreground, blush.FgBlue)
-	}
-	if e.Colour() == c1 {
-		t.Errorf("e.Colour() = %v, want a different Colour", e.Colour())
-	}
-	if e.Colour().Background == c1.Background {
-		t.Errorf("e.Colour().Background = %v, c1.Background = %v, want a different Colour", e.Colour().Background, c1.Background)
-	}
+	assert.Equal(t, blush.FgBlue, e.Colour().Foreground)
+	assert.NotEqual(t, c1, e.Colour())
+	assert.NotEqual(t, c1.Background, e.Colour().Background)
 }

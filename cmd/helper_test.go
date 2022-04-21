@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/alecthomas/assert"
 	"github.com/arsham/blush/blush"
 	"github.com/bouk/monkey"
 )
@@ -26,29 +27,33 @@ func (s *stdFile) String() string {
 	buf.ReadFrom(s.f)
 	return buf.String()
 }
+
 func (s *stdFile) Close() error {
 	return s.f.Close()
 }
 
-func newStdFile(t *testing.T, name string) (*stdFile, func()) {
+func newStdFile(t *testing.T, name string) *stdFile {
+	t.Helper()
 	f, err := ioutil.TempFile("", name)
 	if err != nil {
 		t.Fatal(err)
 	}
 	sf := &stdFile{f}
-	return sf, func() {
+	t.Cleanup(func() {
 		f.Close()
 		os.Remove(f.Name())
-	}
+	})
+	return sf
 }
 
-func setup(t *testing.T, args string) (stdout, stderr *stdFile, cleanup func()) {
+func setup(t *testing.T, args string) (stdout, stderr *stdFile) {
+	t.Helper()
 	oldArgs := os.Args
 	oldStdout := os.Stdout
 	oldStderr := os.Stderr
 
-	stdout, outCleanup := newStdFile(t, "stdout")
-	stderr, errCleanup := newStdFile(t, "stderr")
+	stdout = newStdFile(t, "stdout")
+	stderr = newStdFile(t, "stderr")
 	os.Stdout = stdout.f
 	os.Stderr = stderr.f
 
@@ -63,36 +68,30 @@ func setup(t *testing.T, args string) (stdout, stderr *stdFile, cleanup func()) 
 		fmt.Fprintf(os.Stderr, format, v...)
 	})
 
-	cleanup = func() {
-		outCleanup()
-		errCleanup()
+	t.Cleanup(func() {
 		os.Args = oldArgs
 		os.Stdout = oldStdout
 		os.Stderr = oldStderr
 		fatalPatch.Unpatch()
 		fatalfPatch.Unpatch()
-	}
-	return stdout, stderr, cleanup
+	})
+	return stdout, stderr
 }
 
-func getPipe(t *testing.T) (*os.File, func()) {
+func getPipe(t *testing.T) *os.File {
+	t.Helper()
 	file, err := ioutil.TempFile("", "blush_pipe")
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 	name := file.Name()
 	rmFile := func() {
-		if err = os.Remove(name); err != nil {
-			t.Error(err)
-		}
+		err := os.Remove(name)
+		assert.NoError(t, err)
 	}
 	file.Close()
 	rmFile()
 	file, err = os.OpenFile(name, os.O_CREATE|os.O_RDWR, os.ModeCharDevice|os.ModeDevice)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return file, rmFile
+	assert.NoError(t, err)
+	return file
 }
 
 func argsEqual(a, b []blush.Finder) bool {

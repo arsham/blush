@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 
 	"github.com/arsham/blush/blush"
 )
@@ -14,7 +13,7 @@ func ExampleBlush() {
 	r := bytes.NewBufferString("He who lives by the sword, will surely also die")
 	b := &blush.Blush{
 		Finders: []blush.Finder{f},
-		Reader:  ioutil.NopCloser(r),
+		Reader:  io.NopCloser(r),
 	}
 	b.Close()
 }
@@ -25,7 +24,7 @@ func ExampleBlush_Read() {
 	r := bytes.NewBufferString("He who lives in sin, will surely live the lie")
 	b := &blush.Blush{
 		Finders: []blush.Finder{f},
-		Reader:  ioutil.NopCloser(r),
+		Reader:  io.NopCloser(r),
 	}
 	b.Read(p)
 }
@@ -35,7 +34,7 @@ func ExampleBlush_Read_inDetails() {
 	r := bytes.NewBufferString("He who lives in sin, will surely live the lie")
 	b := &blush.Blush{
 		Finders: []blush.Finder{f},
-		Reader:  ioutil.NopCloser(r),
+		Reader:  io.NopCloser(r),
 	}
 	expect := fmt.Sprintf("He who lives in %s, will surely live the lie", f)
 
@@ -61,7 +60,7 @@ func ExampleBlush_WriteTo() {
 	r := bytes.NewBufferString("It is a shield of passion and strong will from this I am the victor instead of the kill\n")
 	b := &blush.Blush{
 		Finders: []blush.Finder{f},
-		Reader:  ioutil.NopCloser(r),
+		Reader:  io.NopCloser(r),
 	}
 	buf := new(bytes.Buffer)
 	n, err := b.WriteTo(buf)
@@ -82,7 +81,7 @@ func ExampleBlush_WriteTo_copy() {
 	r := bytes.NewBufferString("Savour what you feel and what you see\n")
 	b := &blush.Blush{
 		Finders: []blush.Finder{f},
-		Reader:  ioutil.NopCloser(r),
+		Reader:  io.NopCloser(r),
 	}
 	buf := new(bytes.Buffer)
 	n, err := io.Copy(buf, b)
@@ -107,7 +106,7 @@ func ExampleBlush_WriteTo_multiReader() {
 
 	b := &blush.Blush{
 		Finders: []blush.Finder{mg, g},
-		Reader:  ioutil.NopCloser(mr),
+		Reader:  io.NopCloser(mr),
 	}
 	buf := new(bytes.Buffer)
 	b.WriteTo(buf)
@@ -122,7 +121,7 @@ func ExampleBlush_WriteTo_multiReaderInDetails() {
 
 	b := &blush.Blush{
 		Finders: []blush.Finder{mg, g},
-		Reader:  ioutil.NopCloser(mr),
+		Reader:  io.NopCloser(mr),
 	}
 	buf := new(bytes.Buffer)
 	n, err := b.WriteTo(buf)

@@ -44,7 +44,7 @@ var (
 	Yellow   = Colour{FgYellow, NoRGB}
 )
 
-//DefaultColour is the default colour if no colour is set via arguments.
+// DefaultColour is the default colour if no colour is set via arguments.
 var DefaultColour = Blue
 
 // RGB represents colours that can be printed in terminals. R, G and B should be
@@ -91,7 +91,7 @@ func colour(red, green, blue int) int {
 	return 16 + baseColor(red, 36) + baseColor(green, 6) + baseColor(blue, 1)
 }
 
-func baseColor(value int, factor int) int {
+func baseColor(value, factor int) int {
 	return int(6*float64(value)/256) * factor
 }
 
@@ -154,7 +154,7 @@ func stockColour(colour string) Colour {
 		c = Magenta
 	case "yl", "yellow":
 		c = Yellow
-	case "no-colour", "no-color":
+	case "no-colour", "no-color": // nolint:misspell // it's ok.
 		c = NoColour
 	}
 	return c

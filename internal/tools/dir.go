@@ -4,7 +4,6 @@ package tools
 import (
 	"errors"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -38,7 +37,7 @@ func Files(recursive bool, paths ...string) ([]string, error) {
 
 func unique(fileList []string) []string {
 	var (
-		ret  []string
+		ret  = make([]string, 0, len(fileList))
 		seen = make(map[string]struct{}, len(fileList))
 	)
 	for _, f := range fileList {
@@ -52,9 +51,7 @@ func unique(fileList []string) []string {
 }
 
 func nonBinary(fileList []string) []string {
-	var (
-		ret []string
-	)
+	ret := make([]string, 0, len(fileList))
 	for _, f := range fileList {
 		if isPlainText(f) {
 			ret = append(ret, f)
@@ -87,11 +84,11 @@ func files(location string) ([]string, error) {
 	if s, err := os.Stat(location); err == nil && !s.IsDir() {
 		return []string{location}, nil
 	}
-	fileList := []string{}
-	files, err := ioutil.ReadDir(location)
+	files, err := os.ReadDir(location)
 	if err != nil {
 		return nil, err
 	}
+	fileList := []string{}
 	for _, f := range files {
 		if !f.IsDir() {
 			p := path.Join(location, f.Name())
@@ -103,14 +100,14 @@ func files(location string) ([]string, error) {
 
 // TODO: we should ignore the line in search stage instead.
 func isPlainText(name string) bool {
-	f, err := os.Open(name)
+	f, err := os.Open(name) // nolint:gosec // this is required.
 	if err != nil {
 		return false
 	}
-	defer f.Close()
+	defer f.Close() // nolint:errcheck,gosec // not required.
 	header := make([]byte, 512)
 	_, err = f.Read(header)
-	if err != nil && err != io.EOF {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return false
 	}
 

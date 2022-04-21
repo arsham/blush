@@ -4,58 +4,36 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/alecthomas/assert"
 	"github.com/arsham/blush/blush"
 )
 
 func TestColourise(t *testing.T) {
+	t.Parallel()
 	input := "nswkgjTusmxWoiZLhZOGBG"
 	got := blush.Colourise(input, blush.NoColour)
-	if !strings.Contains(got, input) {
-		t.Errorf("want `%s` in `%s`", input, got)
-	}
-	if strings.Contains(got, "[38;") {
-		t.Errorf("don't want `%v` in `%v`", []byte("[38;"), []byte(got))
-	}
-	if strings.Contains(got, "[48;") {
-		t.Errorf("don't want `%v` in `%v`", []byte("[48;"), []byte(got))
-	}
-	if strings.Contains(got, "\033[0m") {
-		t.Errorf("don't want `%v` in `%v`", []byte("\033[0m"), []byte(got))
-	}
+	assert.Contains(t, input, got)
+	assert.NotContains(t, "[38;", got)
+	assert.NotContains(t, "[48;", got)
+	assert.NotContains(t, "\033[0m", got)
 
 	c := blush.Colour{
 		Foreground: blush.FgGreen,
 		Background: blush.FgRed,
 	}
 	got = blush.Colourise(input, c)
-	if !strings.Contains(got, input) {
-		t.Errorf("want `%v` in `%v`", []byte(input), []byte(got))
-	}
-	if !strings.Contains(got, "[38;") {
-		t.Errorf("want `%v` in `%v`", []byte("[38;"), []byte(got))
-	}
-	if !strings.Contains(got, "[48;") {
-		t.Errorf("want `%v` in `%v`", []byte("[48;"), []byte(got))
-	}
-	if strings.Count(got, "\033[0m") != 1 {
-		t.Errorf("want unformat to appear once, got %d", strings.Count(got, "\033[0m"))
-	}
+	assert.Contains(t, got, input)
+	assert.Contains(t, got, "[38;")
+	assert.Contains(t, got, "[48;")
+	assert.EqualValues(t, 1, strings.Count(got, "\033[0m"))
 
 	c = blush.Colour{
 		Foreground: blush.NoRGB,
 		Background: blush.FgRed,
 	}
 	got = blush.Colourise(input, c)
-	if !strings.Contains(got, input) {
-		t.Errorf("want `%v` in `%v`", []byte(input), []byte(got))
-	}
-	if strings.Contains(got, "[38;") {
-		t.Errorf("don't want `%v` in `%v`", []byte("[38;"), []byte(got))
-	}
-	if !strings.Contains(got, "[48;") {
-		t.Errorf("want `%v` in `%v`", []byte("[48;"), []byte(got))
-	}
-	if strings.Count(got, "\033[0m") != 1 {
-		t.Errorf("want unformat string to appear once, got %d", strings.Count(got, "\033[0m"))
-	}
+	assert.Contains(t, got, input)
+	assert.NotContains(t, got, "[38;")
+	assert.Contains(t, got, "[48;")
+	assert.EqualValues(t, 1, strings.Count(got, "\033[0m"))
 }

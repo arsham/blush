@@ -7,9 +7,9 @@ import (
 )
 
 var (
-	isRegExp = regexp.MustCompile(`[\^\$\.\{\}\[\]\*\?]`)
-	// grouping is used for matching colour groups (b1, etc.).
-	grouping = regexp.MustCompile("^([[:alpha:]]+)([[:digit:]]+)$")
+	isRegExp = regexp.MustCompile(`[\^\$.\{\}\[\]\*\?]`)
+	// This is used for matching colour groups (b1, etc.).
+	grouping = regexp.MustCompile(`^([[:alpha:]]+)(\d+)$`)
 )
 
 // Finder finds texts based on a plain text or regexp logic. If it doesn't find
@@ -27,7 +27,7 @@ type Finder interface {
 // (#666).
 func NewLocator(colour, search string, insensitive bool) Finder {
 	c := colorFromArg(colour)
-	if !isRegExp.Match([]byte(search)) {
+	if !isRegExp.MatchString(search) {
 		if insensitive {
 			return NewIexact(search, c)
 		}
@@ -76,7 +76,7 @@ func (e Exact) colourise(input string, c Colour) string {
 	if c == NoColour {
 		return input
 	}
-	return strings.Replace(input, e.s, Colourise(e.s, c), -1)
+	return strings.ReplaceAll(input, e.s, Colourise(e.s, c))
 }
 
 // Colour returns the Colour property.
@@ -119,7 +119,7 @@ func (i Iexact) colourise(input string, c Colour) string {
 	index := strings.Index(strings.ToLower(input), strings.ToLower(i.s))
 	end := len(i.s) + index
 	match := input[index:end]
-	return strings.Replace(input, match, Colourise(match, c), -1)
+	return strings.ReplaceAll(input, match, Colourise(match, c))
 }
 
 // Colour returns the Colour property.

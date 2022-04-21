@@ -2,8 +2,8 @@ package blush_test
 
 import (
 	"bytes"
+	"errors"
 	"io"
-	"io/ioutil"
 	"regexp"
 	"strings"
 	"testing"
@@ -312,7 +312,7 @@ func BenchmarkBlush(b *testing.B) {
 func benchmarkRead(b *testing.B, bc benchCase) {
 	p := make([]byte, bc.length)
 	for i := 0; i < b.N; i++ {
-		input := ioutil.NopCloser(bc.reader())
+		input := io.NopCloser(bc.reader())
 		bl := &blush.Blush{
 			Finders: bc.match,
 			Reader:  input,
@@ -320,7 +320,7 @@ func benchmarkRead(b *testing.B, bc benchCase) {
 		for {
 			_, err := bl.Read(p)
 			if err != nil {
-				if err != io.EOF {
+				if !errors.Is(err, io.EOF) {
 					b.Errorf("err = %v", err)
 				}
 				break
@@ -331,7 +331,7 @@ func benchmarkRead(b *testing.B, bc benchCase) {
 
 func benchmarkWriteTo(b *testing.B, bc benchCase) {
 	for i := 0; i < b.N; i++ {
-		input := ioutil.NopCloser(bc.reader())
+		input := io.NopCloser(bc.reader())
 		bl := &blush.Blush{
 			Finders: bc.match,
 			Reader:  input,

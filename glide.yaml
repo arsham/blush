@@ -1,4 +1,0 @@
-package: github.com/arsham/blush
-import:
-- package: github.com/pkg/errors
-- package: github.com/bouk/monkey

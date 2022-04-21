@@ -4,67 +4,47 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"strings"
 	"testing"
 
+	"github.com/alecthomas/assert"
 	"github.com/arsham/blush/blush"
 	"github.com/arsham/blush/cmd"
 )
 
 func TestMainNoArgs(t *testing.T) {
-	stdout, stderr, cleanup := setup(t, "")
-	defer cleanup()
+	stdout, stderr := setup(t, "")
 	cmd.Main()
-	if len(stdout.String()) > 0 {
-		t.Errorf("didn't expect any stdout, got: %s", stdout.String())
-	}
-	if !strings.Contains(stderr.String(), cmd.ErrNoInput.Error()) {
-		t.Errorf("stderr = `%s`, want `%s` in it", stderr.String(), cmd.ErrNoInput.Error())
-	}
-	if !strings.Contains(stderr.String(), cmd.Help) {
-		t.Errorf("stderr = `%s`, want `%s` in it", stderr.String(), cmd.Help)
-	}
+	assert.Empty(t, stdout.String())
+	assert.Contains(t, stderr.String(), cmd.ErrNoInput.Error())
+	assert.Contains(t, stderr.String(), cmd.Help)
 }
 
 func TestMainHelp(t *testing.T) {
-	stdout, stderr, cleanup := setup(t, "--help")
-	defer cleanup()
+	stdout, stderr := setup(t, "--help")
 	cmd.Main()
-	if len(stderr.String()) > 0 {
-		t.Errorf("didn't expect any stderr, got: %s", stderr.String())
-	}
-	if !strings.Contains(stdout.String(), cmd.Usage) {
-		t.Errorf("stdout = `%s`, want `%s` in it", stdout.String(), cmd.Usage)
-	}
+	assert.Empty(t, stderr.String())
+	assert.Contains(t, stdout.String(), cmd.Usage)
 }
 
 func TestPipeInput(t *testing.T) {
 	oldStdin := os.Stdin
-	stdout, stderr, cleanup := setup(t, "findme")
+	stdout, stderr := setup(t, "findme")
 	defer func() {
-		cleanup()
 		os.Stdin = oldStdin
 	}()
-	file, cl := getPipe(t)
-	defer cl()
+	file := getPipe(t)
 	file.WriteString("you can findme here")
 	os.Stdin = file
 	file.Seek(0, 0)
 	cmd.Main()
-	if len(stderr.String()) > 0 {
-		t.Errorf("didn't expect printing anything: %s", stderr.String())
-	}
-	if !strings.Contains(stdout.String(), "findme") {
-		t.Errorf("stdout = `%s`, want `%s` in it", stdout.String(), "findme")
-	}
+	assert.Empty(t, stderr.String())
+	assert.Contains(t, stdout.String(), "findme")
 }
 
 func TestMainMatch(t *testing.T) {
 	match := blush.Colourise("TOKEN", blush.Blue)
 	pwd, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 	location := path.Join(pwd, "../blush/testdata")
 
 	tcs := []struct {
@@ -77,20 +57,14 @@ func TestMainMatch(t *testing.T) {
 		{"regexp insensitive", "-i -b tok[en]{2}"},
 	}
 	for _, tc := range tcs {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			stdout, stderr, cleanup := setup(t, fmt.Sprintf("%s %s", tc.input, location))
-			defer cleanup()
+			stdout, stderr := setup(t, fmt.Sprintf("%s %s", tc.input, location))
 			cmd.Main()
 
-			if len(stderr.String()) > 0 {
-				t.Errorf("len(stderr.String()) = %d, want 0: `%s`", len(stderr.String()), stderr.String())
-			}
-			if len(stdout.String()) == 0 {
-				t.Errorf("len(stdout.String()) = %d, want > 0", len(stdout.String()))
-			}
-			if !strings.Contains(stdout.String(), match) {
-				t.Errorf("want `%s` in `%s`", match, stdout.String())
-			}
+			assert.Empty(t, stderr.String())
+			assert.NotEmpty(t, stdout.String())
+			assert.Contains(t, stdout.String(), match)
 		})
 	}
 }
@@ -98,9 +72,7 @@ func TestMainMatch(t *testing.T) {
 func TestMainMatchNoCut(t *testing.T) {
 	matches := []string{"TOKEN", "ONE", "TWO", "THREE", "FOUR"}
 	pwd, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 	location := path.Join(pwd, "../blush/testdata")
 
 	tcs := []struct {
@@ -108,24 +80,17 @@ func TestMainMatchNoCut(t *testing.T) {
 	}{
 		{"short", "-C"},
 		{"long", "--colour"},
-		{"long american", "--color"},
+		{"long american", "--colour"},
 	}
 	for _, tc := range tcs {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			stdout, stderr, cleanup := setup(t, fmt.Sprintf("%s -b %s %s", tc.input, leaveMeHere, location))
-			defer cleanup()
+			stdout, stderr := setup(t, fmt.Sprintf("%s -b %s %s", tc.input, leaveMeHere, location))
 			cmd.Main()
-
-			if len(stderr.String()) > 0 {
-				t.Errorf("len(stderr.String()) = %d, want 0: `%s`", len(stderr.String()), stderr.String())
-			}
-			if len(stdout.String()) == 0 {
-				t.Errorf("len(stdout.String()) = %d, want > 0", len(stdout.String()))
-			}
+			assert.Empty(t, stderr.String())
+			assert.NotEmpty(t, stdout.String())
 			for _, s := range matches {
-				if !strings.Contains(stdout.String(), s) {
-					t.Errorf("want `%s` in `%s`", s, stdout.String())
-				}
+				assert.Contains(t, stdout.String(), s)
 			}
 		})
 	}
@@ -134,12 +99,8 @@ func TestMainMatchNoCut(t *testing.T) {
 func TestNoFiles(t *testing.T) {
 	fileName := "test"
 	b, err := cmd.GetBlush([]string{fileName})
-	if err == nil {
-		t.Error("GetBlush(): err = nil, want error")
-	}
-	if b != nil {
-		t.Errorf("GetBlush(): b = %v, want nil", b)
-	}
+	assert.Error(t, err)
+	assert.Nil(t, b)
 }
 
 func TestColourArgs(t *testing.T) {
@@ -157,7 +118,7 @@ func TestColourArgs(t *testing.T) {
 		{"1-no colour", []string{"--no-colour", "aaa", "/"}, []blush.Finder{
 			blush.NewExact(aaa, blush.NoColour),
 		}},
-		{"1-no colour american", []string{"--no-color", "aaa", "/"}, []blush.Finder{
+		{"1-no colour american", []string{"--no-colour", "aaa", "/"}, []blush.Finder{
 			blush.NewExact(aaa, blush.NoColour),
 		}},
 		{"1-colour", []string{"-b", "aaa", "/"}, []blush.Finder{
@@ -174,7 +135,7 @@ func TestColourArgs(t *testing.T) {
 			blush.NewExact(aaa, blush.NoColour),
 			blush.NewExact(bbb, blush.NoColour),
 		}},
-		{"2-no colour american", []string{"--no-color", "aaa", "bbb", "/"}, []blush.Finder{
+		{"2-no colour american", []string{"--no-colour", "aaa", "bbb", "/"}, []blush.Finder{
 			blush.NewExact(aaa, blush.NoColour),
 			blush.NewExact(bbb, blush.NoColour),
 		}},
@@ -221,18 +182,13 @@ func TestColourArgs(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			input := append([]string{"blush"}, tc.input...)
 			b, err := cmd.GetBlush(input)
-			if err != nil {
-				t.Errorf("GetBlush(): err = %s, want nil", err)
-			}
-			if b == nil {
-				t.Error("GetBlush(): b = nil, want *Blush")
-			}
-			if !argsEqual(b.Finders, tc.want) {
-				t.Errorf("(%s): b.Args = %v, want %v", tc.input, b.Finders, tc.want)
-			}
+			assert.NoError(t, err)
+			assert.NotNil(t, b)
+			assert.True(t, argsEqual(b.Finders, tc.want))
 		})
 	}
 }
@@ -249,17 +205,12 @@ func TestWithFilename(t *testing.T) {
 		{"no filename both", []string{"blush", "-h", "--no-filename", "aaa", "/"}, false},
 	}
 	for _, tc := range tcs {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			b, err := cmd.GetBlush(tc.input)
-			if err != nil {
-				t.Errorf("GetBlush(): err = %s, want nil", err)
-			}
-			if b == nil {
-				t.Fatal("GetBlush(): b = nil, want *Blush")
-			}
-			if b.WithFileName != tc.want {
-				t.Errorf("b.WithFileName = %t, want %t", b.WithFileName, tc.want)
-			}
+			assert.NoError(t, err)
+			assert.NotNil(t, b)
+			assert.Equal(t, tc.want, b.WithFileName)
 		})
 	}
 }

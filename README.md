@@ -7,18 +7,17 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/arsham/blush)](https://goreportcard.com/report/github.com/arsham/blush)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/4d4d4330fc2e44f18da6d8012d7432b9)](https://www.codacy.com/app/arsham/blush?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=arsham/blush&amp;utm_campaign=Badge_Grade)
 
-With Blush, you can grep with any colours of your choice.
+With Blush, you can highlight matches with any colours of your choice.
 
 ![Colored](http://i.imgur.com/RF19HYU.png)
 
 1. [Install](#install)
-    * [Update](#update)
 2. [Usage](#usage)
-    * [Match Method](#match-method)
-    * [Colouring Method](#colouring-method)
-    * [Piping](#piping)
+   - [Match Method](#match-method)
+   - [Colouring Method](#colouring-method)
+   - [Piping](#piping)
 3. [Arguments](#arguments)
-    * [Notes](#notes)
+   - [Notes](#notes)
 4. [Colour Groups](#colour-groups)
 5. [Colours](#colours)
 6. [Complex Grep](#complex-grep)
@@ -32,26 +31,17 @@ page. If you prefer to install it manually you can get the code and install it
 with the following command:
 
 ```bash
-$ go get github.com/arsham/blush
+$ go install github.com/arsham/blush@latest
 ```
 
-Make sure you have `go>=1.7` installed.
-
-### Update
-
-In order to update the program:
-
-```bash
-$ cd $GOPATH/src/github.com/arsham/blush
-$ make update
-$ make install
-```
+Make sure you have `go>=1.18` installed.
 
 ## Usage
 
 ### Match Method
 
 This method shows matches with the given input:
+
 ```bash
 $ blush -b "first search" -g "second one" -g "and another one" files/paths
 ```
@@ -71,6 +61,7 @@ can activate this mode by providing `--colour` or `-C` argument.
 ### Piping
 
 Blush can also read from a pipe:
+
 ```bash
 $ cat FILENAME | blush -b "print in blue" -g "in green" -g "another green"
 $ cat FILENAME | blush "some text"
@@ -104,9 +95,9 @@ $ blush -b match1 match2 FILENAME
 
 ### Notes
 
-* If no colour is provided, blush will choose blue.
-* If you only provide file/path, it will print them out without colouring.
-* If the matcher contains only alphabets and numbers, a non-regular expression is applied to search.
+- If no colour is provided, blush will choose blue.
+- If you only provide file/path, it will print them out without colouring.
+- If the matcher contains only alphabets and numbers, a non-regular expression is applied to search.
 
 ## Colour Groups
 
@@ -159,6 +150,7 @@ You must put your complex grep into quotations:
 ```bash
 $ blush -b "^age: [0-9]+" FILENAME
 ```
+
 ![Colored](http://i.imgur.com/hskdVhe.png)
 
 ## Suggestions

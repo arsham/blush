@@ -7,43 +7,41 @@ import (
 	"os"
 	"path"
 	"sort"
+	"strings"
 	"testing"
 
+	"github.com/alecthomas/assert"
 	"github.com/arsham/blush/internal/tools"
+	"github.com/google/go-cmp/cmp"
 )
 
-func stringSliceEq(a, b []string) bool {
+func stringSliceEq(t *testing.T, a, b []string) {
+	t.Helper()
 	sort.Strings(a)
 	sort.Strings(b)
-	if len(a) != len(b) {
-		return false
+	if diff := cmp.Diff(a, b); diff != "" {
+		t.Errorf("(-want +got):\\n%s", diff)
 	}
-	for i := 0; i < len(a); i++ {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
 }
 
-func inStringSlice(a string, b []string) bool {
-	for _, s := range b {
-		if a == s {
+func inSlice(niddle string, haystack []string) bool {
+	for _, s := range haystack {
+		if s == niddle {
 			return true
 		}
 	}
 	return false
 }
 
-func setup(count int) (dirs, expect []string, cleanup func(), err error) {
+func setup(t *testing.T, count int) (dirs, expect []string) {
+	t.Helper()
 	ret := make(map[string]struct{})
 	tmp, err := ioutil.TempDir("", "blush")
-	if err != nil {
-		return nil, nil, func() {}, err
-	}
-	cleanup = func() {
+	assert.NoError(t, err)
+	t.Cleanup(func() {
 		os.RemoveAll(tmp)
-	}
+	})
+
 	files := []struct {
 		dir   string
 		count int
@@ -56,15 +54,11 @@ func setup(count int) (dirs, expect []string, cleanup func(), err error) {
 	for _, f := range files {
 		l := path.Join(tmp, f.dir)
 		err := os.MkdirAll(l, os.ModePerm)
-		if err != nil {
-			return nil, nil, cleanup, err
-		}
+		assert.NoError(t, err)
 
 		for i := 0; i < f.count; i++ {
 			f, err := ioutil.TempFile(l, "file_")
-			if err != nil {
-				return nil, nil, cleanup, err
-			}
+			assert.NoError(t, err)
 			ret[path.Dir(f.Name())] = struct{}{}
 			expect = append(expect, f.Name())
 			f.WriteString("test")
@@ -74,59 +68,40 @@ func setup(count int) (dirs, expect []string, cleanup func(), err error) {
 		dirs = append(dirs, d)
 	}
 	sort.Strings(dirs)
-	return
+	return dirs, expect
 }
 
 func TestFilesError(t *testing.T) {
+	t.Parallel()
 	f, err := tools.Files(false)
-	if f != nil {
-		t.Errorf("f = %v, want nil", f)
-	}
-	if err == nil {
-		t.Error("err = nil, want error")
-	}
+	assert.Nil(t, f)
+	assert.Error(t, err)
 	f, err = tools.Files(false, "/path to heaven")
-	if err == nil {
-		t.Error("err = nil, want error")
-	}
-	if f != nil {
-		t.Errorf("f = %v, want nil", f)
-	}
+	assert.Error(t, err)
+	assert.Nil(t, f)
 }
 
 func TestFiles(t *testing.T) {
-	dirs, expect, cleanup, err := setup(10)
-	defer cleanup()
-	if err != nil {
-		t.Fatal(err)
-	}
+	t.Parallel()
+	dirs, expect := setup(t, 10)
 
 	f, err := tools.Files(false, dirs...)
-	if err != nil {
-		t.Errorf("err = %v, want nil", err)
-	}
-	if f == nil {
-		t.Error("f = nil, want []string")
-	}
-	if !stringSliceEq(expect, f) {
-		t.Errorf("f = %v, \nwant %v", f, expect)
-	}
+	assert.NoError(t, err)
+	assert.NotNil(t, f)
+	stringSliceEq(t, expect, f)
 
 	// the a and abc should match, a/b/c should not
 	f, err = tools.Files(false, dirs[0], dirs[2])
-	if err != nil {
-		t.Errorf("err = %v, want nil", err)
-	}
+	assert.NoError(t, err)
 	if len(f) != 20 { // all files in `a` and `abc`
 		t.Errorf("len(f) = %d, want %d: %v", len(f), 20, f)
 	}
 }
 
 func TestFilesOnSingleFile(t *testing.T) {
+	t.Parallel()
 	file, err := ioutil.TempFile("", "blush_tools")
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 	name := file.Name()
 	defer func() {
 		if err = os.Remove(name); err != nil {
@@ -135,9 +110,7 @@ func TestFilesOnSingleFile(t *testing.T) {
 	}()
 
 	f, err := tools.Files(true, name)
-	if err != nil {
-		t.Errorf("err = %v, want nil", err)
-	}
+	assert.NoError(t, err)
 	if len(f) != 1 {
 		t.Fatalf("len(f) = %d, want 1", len(f))
 	}
@@ -146,9 +119,7 @@ func TestFilesOnSingleFile(t *testing.T) {
 	}
 
 	f, err = tools.Files(false, name)
-	if err != nil {
-		t.Errorf("err = %v, want nil", err)
-	}
+	assert.NoError(t, err)
 	if len(f) != 1 {
 		t.Fatalf("len(f) = %d, want 1", len(f))
 	}
@@ -158,41 +129,27 @@ func TestFilesOnSingleFile(t *testing.T) {
 }
 
 func TestFilesRecursive(t *testing.T) {
+	t.Parallel()
 	f, err := tools.Files(true, "/path to heaven")
-	if err == nil {
-		t.Error("err = nil, want error")
-	}
-	if f != nil {
-		t.Errorf("f = %v, want nil", f)
-	}
+	assert.Error(t, err)
+	assert.Nil(t, f)
 
-	dirs, expect, cleanup, err := setup(10)
-	defer cleanup()
-	if err != nil {
-		t.Fatal(err)
-	}
+	dirs, expect := setup(t, 10)
 
 	f, err = tools.Files(true, dirs...)
-	if err != nil {
-		t.Errorf("err = %v, want nil", err)
-	}
-	if f == nil {
-		t.Error("f = nil, want []string")
-	}
-	if !stringSliceEq(expect, f) {
-		t.Errorf("f = %v, want %v", f, expect)
-	}
+	assert.NoError(t, err)
+	assert.NotNil(t, f)
+	stringSliceEq(t, expect, f)
 
 	f, err = tools.Files(true, dirs[0]) // expecting `a`
-	if err != nil {
-		t.Errorf("err = %v, want nil", err)
-	}
+	assert.NoError(t, err)
 	if len(f) != 20 { // all files in `a`
 		t.Errorf("len(f) = %d, want %d: %v", len(f), 20, f)
 	}
 }
 
-func setupUnpermissioned(t *testing.T) (string, string, func()) {
+func setupUnpermissioned(t *testing.T) (rootDir, fileB string) {
+	t.Helper()
 	// creates this structure:
 	// /tmp
 	//     /a <--- 0222 perm
@@ -200,9 +157,7 @@ func setupUnpermissioned(t *testing.T) (string, string, func()) {
 	//     /b <--- 0777 perm
 	//       /bbb.txt
 	rootDir, err := ioutil.TempDir("", "blush_dir")
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 	dirA := path.Join(rootDir, "a")
 	dirB := path.Join(rootDir, "b")
 	dirs := []struct {
@@ -212,167 +167,122 @@ func setupUnpermissioned(t *testing.T) (string, string, func()) {
 		{dirB, "bbb.txt"},
 	}
 	for _, d := range dirs {
-		err = os.Mkdir(d.dir, 0777)
-		if err != nil {
-			t.Fatal(err)
-		}
+		err = os.Mkdir(d.dir, 0o777)
+		assert.NoError(t, err)
 		name := path.Join(d.dir, d.file)
 		_, err = os.Create(name)
-		if err != nil {
-			t.Fatal(err)
-		}
+		assert.NoError(t, err)
 	}
-	err = os.Chmod(dirA, 0222)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fileB := path.Join(dirB, "bbb.txt")
-	return rootDir, fileB, func() {
-		err = os.Chmod(dirA, 0777)
-		if err != nil {
-			t.Error(err)
-		}
-		if err = os.RemoveAll(rootDir); err != nil {
-			t.Error(err)
-		}
-	}
+	err = os.Chmod(dirA, 0o222)
+	assert.NoError(t, err)
+	fileB = path.Join(dirB, "bbb.txt")
+	t.Cleanup(func() {
+		err := os.Chmod(dirA, 0o777)
+		assert.NoError(t, err)
+		err = os.RemoveAll(rootDir)
+		assert.NoError(t, err)
+	})
+	return rootDir, fileB
 }
 
 func TestIgnoreNontPermissionedFolders(t *testing.T) {
-	rootDir, fileB, cleanup := setupUnpermissioned(t)
-	defer cleanup()
+	t.Parallel()
+	rootDir, fileB := setupUnpermissioned(t)
 	f, err := tools.Files(true, rootDir)
-	if err != nil {
-		t.Errorf("err = %v, want nil", err)
-	}
-	if f == nil {
-		t.Error("f = nil, want []string")
-	}
+	assert.NoError(t, err)
+	assert.NotNil(t, f)
 	expect := []string{
 		fileB,
 	}
-	if !stringSliceEq(expect, f) {
-		t.Errorf("f = %v, want %v", f, expect)
-	}
+	stringSliceEq(t, expect, f)
 }
 
-// first returned string is text format, second is binary
-func setupBinaryFile(t *testing.T) (string, string, func()) {
+// first returned string is text format, second is binary.
+func setupBinaryFile(t *testing.T) (str, name string) {
+	t.Helper()
 	dir, err := ioutil.TempDir("", "blush_dir")
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
+
 	txt, err := os.Create(path.Join(dir, "txt"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
+
 	img := image.NewRGBA(image.Rect(0, 0, 1, 1))
 	binary, err := os.Create(path.Join(dir, "binary"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
+
 	txt.WriteString("aaaaa")
 	png.Encode(binary, img)
-	return txt.Name(), binary.Name(), func() {
-		if err = os.RemoveAll(dir); err != nil {
-			t.Error(err)
-		}
-	}
+
+	t.Cleanup(func() {
+		err := os.RemoveAll(dir)
+		assert.NoError(t, err)
+	})
+	return txt.Name(), binary.Name()
 }
 
 func TestIgnoreNonTextFiles(t *testing.T) {
-	txt, binary, cleanup := setupBinaryFile(t)
-	defer cleanup()
+	t.Parallel()
+	txt, binary := setupBinaryFile(t)
 	paths := path.Dir(txt)
 	got, err := tools.Files(false, paths)
-	if err != nil {
-		t.Error(err)
-	}
-	if !inStringSlice(txt, got) {
-		t.Errorf("%s not found in %v", txt, got)
-	}
-	if inStringSlice(binary, got) {
-		t.Errorf("%s was found in %v", binary, got)
-	}
+	assert.NoError(t, err)
+	assert.True(t, inSlice(txt, got))
+	assert.False(t, inSlice(binary, got))
 }
 
 func TestUnPrintableButTextContents(t *testing.T) {
+	t.Parallel()
 	tcs := []struct {
-		name  string
-		input string
-		want  bool
+		name    string
+		input   string
+		wantLen int
 	}{
-		{"null", string(0), true},
-		{"space", " ", true},
-		{"return", "\r", true},
-		{"line feed", "\n", true},
-		{"tab", "\t", true},
-		{"mix", "\na\tbbb\n\n\n\t\t\n \t \n \r\nsjdk", true},
-		{"one", string(1), false},
-		{"bell", "\b", false},
-		{"bell in middle", "a\bc", false},
+		{"null", string(rune(0)), 1},
+		{"space", " ", 1},
+		{"return", "\r", 1},
+		{"line feed", "\n", 1},
+		{"tab", "\t", 1},
+		{"mix", "\na\tbbb\n\n\n\t\t\n \t \n \r\nsjdk", 1},
+		{"one", string(rune(1)), 0},
+		{"bell", "\b", 0},
+		{"bell in middle", "a\bc", 0},
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			file, err := ioutil.TempFile("", "blush_text")
-			if err != nil {
-				t.Fatal(err)
-			}
+			assert.NoError(t, err)
 			defer func() {
-				if err = os.Remove(file.Name()); err != nil {
-					t.Error(err)
-				}
+				err := os.Remove(file.Name())
+				assert.NoError(t, err)
 			}()
 			file.WriteString(tc.input)
 			got, err := tools.Files(false, file.Name())
-			if err != nil {
-				t.Error(err)
-			}
-
-			if tc.want {
-				if len(got) != 1 {
-					t.Fatalf("len(%v) = %d, want 1", got, len(got))
-				}
-			} else {
-				if len(got) != 0 {
-					t.Errorf("len(%v) = %d, want 0", got, len(got))
-				}
-			}
+			assert.NoError(t, err)
+			assert.Len(t, got, tc.wantLen, strings.Join(got, "\n"))
 		})
 	}
 }
 
 func TestFilesIgnoreDirs(t *testing.T) {
+	t.Parallel()
 	dir, err := ioutil.TempDir("", "blush_dir")
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 	defer func() {
-		if err = os.RemoveAll(dir); err != nil {
-			t.Error(err)
-		}
+		err := os.RemoveAll(dir)
+		assert.NoError(t, err)
 	}()
-	path := path.Join(dir, "a")
-	err = os.MkdirAll(path, 0777)
-	if err != nil {
-		t.Fatal(err)
-	}
-	file, err := ioutil.TempFile(dir, "b")
-	if err != nil {
-		t.Fatal(err)
-	}
-	g, err := tools.Files(true, dir)
-	if err != nil {
-		t.Errorf("err = %v, want nil", err)
-	}
-	if g == nil {
-		t.Error("g = nil, want []string")
-	}
 
-	if inStringSlice(path, g) {
-		t.Errorf("didn't expect %v in %v", path, g)
-	}
-	if !inStringSlice(file.Name(), g) {
-		t.Errorf("want %v in %v", file.Name(), g)
-	}
+	p := path.Join(dir, "a")
+	err = os.MkdirAll(p, 0o777)
+	assert.NoError(t, err)
+
+	file, err := ioutil.TempFile(dir, "b")
+	assert.NoError(t, err)
+
+	g, err := tools.Files(true, dir)
+	assert.NoError(t, err)
+	assert.NotNil(t, g)
+
+	assert.False(t, inSlice(p, g))
+	assert.True(t, inSlice(file.Name(), g))
 }
