@@ -2,9 +2,7 @@ package cmd_test
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"reflect"
 	"strings"
@@ -12,7 +10,6 @@ import (
 
 	"github.com/alecthomas/assert"
 	"github.com/arsham/blush/blush"
-	"github.com/bouk/monkey"
 )
 
 var leaveMeHere = "LEAVEMEHERE"
@@ -61,19 +58,11 @@ func setup(t *testing.T, args string) (stdout, stderr *stdFile) {
 	if len(args) > 1 {
 		os.Args = append(os.Args, strings.Split(args, " ")...)
 	}
-	fatalPatch := monkey.Patch(log.Fatal, func(msg ...interface{}) {
-		fmt.Fprintln(os.Stderr, msg)
-	})
-	fatalfPatch := monkey.Patch(log.Fatalf, func(format string, v ...interface{}) {
-		fmt.Fprintf(os.Stderr, format, v...)
-	})
 
 	t.Cleanup(func() {
 		os.Args = oldArgs
 		os.Stdout = oldStdout
 		os.Stderr = oldStderr
-		fatalPatch.Unpatch()
-		fatalfPatch.Unpatch()
 	})
 	return stdout, stderr
 }

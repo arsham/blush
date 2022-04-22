@@ -11,14 +11,6 @@ import (
 	"github.com/arsham/blush/cmd"
 )
 
-func TestMainNoArgs(t *testing.T) {
-	stdout, stderr := setup(t, "")
-	cmd.Main()
-	assert.Empty(t, stdout.String())
-	assert.Contains(t, stderr.String(), cmd.ErrNoInput.Error())
-	assert.Contains(t, stderr.String(), cmd.Help)
-}
-
 func TestMainHelp(t *testing.T) {
 	stdout, stderr := setup(t, "--help")
 	cmd.Main()
