@@ -32,9 +32,8 @@ Stock Colours:
     -cy, --cyan
 
 Control arguments:
-    -C, --colour            Don't drop unmatched lines.
+    -d, --drop              Drop unmatched lines.
     -i                      Case insensitive match.
-    --no-colour, --no-color Don't colourise the output.
     -h, --no-filename       Suppress the prefixing of file names on output.
 
 Multi match colouring:

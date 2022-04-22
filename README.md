@@ -1,20 +1,21 @@
 # Blush
 
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/arsham/dbtools)](https://pkg.go.dev/github.com/arsham/dbtools)
+![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/arsham/dbtools)
+[![Build Status](https://github.com/arsham/dbtools/actions/workflows/go.yml/badge.svg)](https://github.com/arsham/dbtools/actions/workflows/go.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![GoDoc](https://godoc.org/github.com/arsham/blush?status.svg)](http://godoc.org/github.com/arsham/blush)
-[![Build Status](https://travis-ci.org/arsham/blush.svg?branch=master)](https://travis-ci.org/arsham/blush)
 [![Coverage Status](https://codecov.io/gh/arsham/blush/branch/master/graph/badge.svg)](https://codecov.io/gh/arsham/blush)
 [![Go Report Card](https://goreportcard.com/badge/github.com/arsham/blush)](https://goreportcard.com/report/github.com/arsham/blush)
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/4d4d4330fc2e44f18da6d8012d7432b9)](https://www.codacy.com/app/arsham/blush?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=arsham/blush&amp;utm_campaign=Badge_Grade)
 
 With Blush, you can highlight matches with any colours of your choice.
 
-![Colored](http://i.imgur.com/RF19HYU.png)
+![1](https://user-images.githubusercontent.com/428611/164768864-e9713ac3-0097-4435-8bcb-577dbf7b9931.png)
 
 1. [Install](#install)
 2. [Usage](#usage)
-   - [Match Method](#match-method)
-   - [Colouring Method](#colouring-method)
+   - [Note](#note)
+   - [Normal Mode](#normal-mode)
+   - [Dropping Unmatched](#dropping-unmatched)
    - [Piping](#piping)
 3. [Arguments](#arguments)
    - [Notes](#notes)
@@ -38,7 +39,25 @@ Make sure you have `go>=1.18` installed.
 
 ## Usage
 
-### Match Method
+Blush can read from a file or a pipe:
+
+```bash
+$ cat FILENAME | blush -b "print in blue" -g "in green" -g "another green"
+$ cat FILENAME | blush "some text"
+$ blush -b "print in blue" -g "in green" -g "another green" FILENAME
+$ blush "some text" FILENAME
+```
+
+### Note
+
+Although this program has a good performance, but performance is not the main
+concern. There are other tools you should use if you are searching in large
+files. Two examples:
+
+- [Ripgrep](https://github.com/BurntSushi/ripgrep)
+- [The Silver Searcher](https://github.com/ggreer/the_silver_searcher)
+
+### Normal Mode
 
 This method shows matches with the given input:
 
@@ -49,38 +68,23 @@ $ blush -b "first search" -g "second one" -g "and another one" files/paths
 Any occurrence of `first search` will be in blue, `second one` and `and another one`
 are in green.
 
-![Colored](http://i.imgur.com/ghUTuva.png)
+![2](https://user-images.githubusercontent.com/428611/164768874-bf687313-c103-449b-bb57-6fdcea51fc5d.png)
 
-### Colouring Method
+### Dropping Unmatched
 
-With this method all texts are shown, but the matching words are coloured. You
-can activate this mode by providing `--colour` or `-C` argument.
+By default, unmatched lines are not dropped. But you can use the `-d` flag to
+drop them:
 
-![Colored](http://i.imgur.com/3CqzAUd.png)
-
-### Piping
-
-Blush can also read from a pipe:
-
-```bash
-$ cat FILENAME | blush -b "print in blue" -g "in green" -g "another green"
-$ cat FILENAME | blush "some text"
-```
+![3](https://user-images.githubusercontent.com/428611/164768875-c9aa3e47-7db0-454f-8a55-1e2bff332c69.png)
 
 ## Arguments
 
-```
-+---------------+----------+------------------------------------------------+
-|    Argument   | Shortcut |                     Notes                      |
-+---------------+----------+------------------------------------------------+
-| --colour      | -C       | Colour, don't drop anything.                   |
-| N/A           | -i       | Case insensitive matching.                     |
-| N/A           | -R       | Recursive matching.                            |
-| --no-colour   | N/A      | Don't colourize matches.                       |
-| --no-color    | N/A      | Same as --no-colour.                           |
-| --no-filename | -h       | Suppress the prefixing of file names on output.|
-+---------------+----------+------------------------------------------------+
-```
+| Argument      | Shortcut | Notes                                           |
+| :------------ | :------- | :---------------------------------------------- |
+| N/A           | -i       | Case insensitive matching.                      |
+| N/A           | -R       | Recursive matching.                             |
+| --no-filename | -h       | Suppress the prefixing of file names on output. |
+| --drop        | -d       | Drop unmatched lines                            |
 
 File names or paths are matched from the end. Any argument that doesn't match
 any files or paths are considered as regular expression. If regular expressions
@@ -91,7 +95,7 @@ provided colour:
 $ blush -b match1 match2 FILENAME
 ```
 
-![Colored](http://i.imgur.com/J6uZPQD.png)
+![4](https://user-images.githubusercontent.com/428611/164768879-f9b73b2c-b6bb-4cf5-a98a-e51535fa554a.png)
 
 ### Notes
 
@@ -107,7 +111,7 @@ You can provide a number for a colour argument to create a colour group:
 $ blush -r1 match1 -r2 match2 -r1 match3 FILENAME
 ```
 
-![Colored](http://i.imgur.com/cBnyrcy.png)
+![5](https://user-images.githubusercontent.com/428611/164768882-5ce57477-e9d5-4170-ac10-731e9391cbee.png)
 
 All matches will be shown as blue. But `match1` and `match3` will have a
 different background colour than `match2`. This means the numbers will create
@@ -123,10 +127,8 @@ $ blush -r match1 match3 -g match2 FILENAME
 
 You can choose a pre-defined colour, or pass it your own colour with a hash:
 
-```
-+-----------+----------+
-|  Argument | Shortcut |
-+-----------+----------+
+| Argument  | Shortcut |
+| :-------- | :------- |
 | --red     | -r       |
 | --green   | -g       |
 | --blue    | -b       |
@@ -135,13 +137,11 @@ You can choose a pre-defined colour, or pass it your own colour with a hash:
 | --yellow  | -yl      |
 | --magenta | -mg      |
 | --cyan    | -cy      |
-+-----------+----------+
-```
 
 You can also pass an RGB colour. It can be in short form (--#1b2, -#1b2), or
 long format (--#11bb22, -#11bb22).
 
-![Colored](http://i.imgur.com/MkBIM9b.png)
+![6](https://user-images.githubusercontent.com/428611/164768883-154b4fd9-946f-43eb-b3f5-ede6027c3eda.png)
 
 ## Complex Grep
 
@@ -151,14 +151,12 @@ You must put your complex grep into quotations:
 $ blush -b "^age: [0-9]+" FILENAME
 ```
 
-![Colored](http://i.imgur.com/hskdVhe.png)
+![7](https://user-images.githubusercontent.com/428611/164768886-5b94b8fa-77e2-4617-80f2-040edce18660.png)
 
 ## Suggestions
 
 This tool is made to make your experience in terminal a more pleasant. Please
 feel free to make any suggestions or request features by creating an issue.
-
-Please see [changelog](./CHANGELOG.md) document for newest changes.
 
 ## License
 

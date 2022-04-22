@@ -69,30 +69,18 @@ func TestMainMatch(t *testing.T) {
 	}
 }
 
-func TestMainMatchNoCut(t *testing.T) {
+func TestMainMatchCut(t *testing.T) {
 	matches := []string{"TOKEN", "ONE", "TWO", "THREE", "FOUR"}
 	pwd, err := os.Getwd()
 	assert.NoError(t, err)
 	location := path.Join(pwd, "../blush/testdata")
 
-	tcs := []struct {
-		name, input string
-	}{
-		{"short", "-C"},
-		{"long", "--colour"},
-		{"long american", "--colour"},
-	}
-	for _, tc := range tcs {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			stdout, stderr := setup(t, fmt.Sprintf("%s -b %s %s", tc.input, leaveMeHere, location))
-			cmd.Main()
-			assert.Empty(t, stderr.String())
-			assert.NotEmpty(t, stdout.String())
-			for _, s := range matches {
-				assert.Contains(t, stdout.String(), s)
-			}
-		})
+	stdout, stderr := setup(t, fmt.Sprintf("-b %s %s", leaveMeHere, location))
+	cmd.Main()
+	assert.Empty(t, stderr.String())
+	assert.NotEmpty(t, stdout.String())
+	for _, s := range matches {
+		assert.Contains(t, stdout.String(), s)
 	}
 }
 

@@ -16,7 +16,34 @@ import (
 	"github.com/arsham/blush/internal/reader"
 )
 
-func TestWriteToErrors(t *testing.T) {
+func TestBlush(t *testing.T) {
+	t.Parallel()
+	t.Run("WriteTo", testBlushWriteTo)
+	t.Run("ClosesReader", testBlushClosesReader)
+	t.Run("Read", testBlushRead)
+	t.Run("PrintName", testBlushPrintName)
+	t.Run("StdinPrintName", testBlushStdinPrintName)
+	t.Run("PrintFilename", testBlushPrintFilename)
+	t.Run("ReadContiniously", testBlushReadContiniously)
+	t.Run("ReadMiddleOfMatch", testBlushReadMiddleOfMatch)
+	t.Run("ReadComplete", testBlushReadComplete)
+	t.Run("ReadPartComplete", testBlushReadPartComplete)
+	t.Run("PartPartOver", testBlushReadPartPartOver)
+	t.Run("ReadMultiLine", testBlushReadMultiLine)
+	t.Run("ReadWriteToMode", testBlushReadWriteToMode)
+}
+
+func testBlushWriteTo(t *testing.T) {
+	t.Parallel()
+	t.Run("Errors", testBlushWriteToErrors)
+	t.Run("NoMatch", testBlushWriteToNoMatch)
+	t.Run("Match", testBlushWriteToMatch)
+	t.Run("Colour", testBlushWriteToColour)
+	t.Run("ColourNoCutMode", testBlushWriteToColourNoCutMode)
+	t.Run("MultipleMatchInOneLine", testBlushWriteToMultipleMatchInOneLine)
+}
+
+func testBlushWriteToErrors(t *testing.T) {
 	t.Parallel()
 	w := &bytes.Buffer{}
 	e := errors.New("something")
@@ -38,7 +65,7 @@ func TestWriteToErrors(t *testing.T) {
 	}{
 		{"no input", &blush.Blush{}, w, 0, reader.ErrNoReader},
 		{"no writer", &blush.Blush{Reader: getReader()}, nil, 0, blush.ErrNoWriter},
-		{"bad writer", &blush.Blush{Reader: getReader(), NoCut: true}, bw, nn, e},
+		{"bad writer", &blush.Blush{Reader: getReader(), Drop: true}, bw, nn, e},
 	}
 
 	for _, tc := range tcs {
@@ -53,7 +80,7 @@ func TestWriteToErrors(t *testing.T) {
 	}
 }
 
-func TestWriteToNoMatch(t *testing.T) {
+func testBlushWriteToNoMatch(t *testing.T) {
 	t.Parallel()
 	pwd, err := os.Getwd()
 	assert.NoError(t, err)
@@ -63,6 +90,7 @@ func TestWriteToNoMatch(t *testing.T) {
 	b := &blush.Blush{
 		Reader:  r,
 		Finders: []blush.Finder{blush.NewExact("SHOULDNOTFINDTHISONE", blush.NoColour)},
+		Drop:    true,
 	}
 	buf := &bytes.Buffer{}
 	n, err := b.WriteTo(buf)
@@ -71,7 +99,14 @@ func TestWriteToNoMatch(t *testing.T) {
 	assert.Zero(t, buf.Len())
 }
 
-func TestWriteToMatchNoColourPlain(t *testing.T) {
+func testBlushWriteToMatch(t *testing.T) {
+	t.Parallel()
+	t.Run("Drop", testBlushWriteToMatchDrop)
+	t.Run("Colour", testBlushWriteToMatchColour)
+	t.Run("CountColour", testBlushWriteToMatchCountColour)
+}
+
+func testBlushWriteToMatchDrop(t *testing.T) {
 	t.Parallel()
 	match := "TOKEN"
 	pwd, err := os.Getwd()
@@ -83,6 +118,7 @@ func TestWriteToMatchNoColourPlain(t *testing.T) {
 	b := &blush.Blush{
 		Reader:  r,
 		Finders: []blush.Finder{blush.NewExact(match, blush.NoColour)},
+		Drop:    true,
 	}
 
 	buf := &bytes.Buffer{}
@@ -95,7 +131,7 @@ func TestWriteToMatchNoColourPlain(t *testing.T) {
 	assert.NotContains(t, buf.String(), leaveMeHere)
 }
 
-func TestWriteToMatchColour(t *testing.T) {
+func testBlushWriteToMatchColour(t *testing.T) {
 	t.Parallel()
 	match := blush.Colourise("TOKEN", blush.Blue)
 	pwd, err := os.Getwd()
@@ -106,6 +142,7 @@ func TestWriteToMatchColour(t *testing.T) {
 	b := &blush.Blush{
 		Reader:  r,
 		Finders: []blush.Finder{blush.NewExact("TOKEN", blush.Blue)},
+		Drop:    true,
 	}
 
 	buf := &bytes.Buffer{}
@@ -118,7 +155,7 @@ func TestWriteToMatchColour(t *testing.T) {
 	assert.NotContains(t, buf.String(), leaveMeHere)
 }
 
-func TestWriteToMatchCountColour(t *testing.T) {
+func testBlushWriteToMatchCountColour(t *testing.T) {
 	t.Parallel()
 	pwd, err := os.Getwd()
 	assert.NoError(t, err)
@@ -148,6 +185,7 @@ func TestWriteToMatchCountColour(t *testing.T) {
 			b := &blush.Blush{
 				Reader:  r,
 				Finders: []blush.Finder{blush.NewExact(tc.name, blush.Red)},
+				Drop:    true,
 			}
 
 			buf := &bytes.Buffer{}
@@ -161,7 +199,7 @@ func TestWriteToMatchCountColour(t *testing.T) {
 	}
 }
 
-func TestWriteToMultiColour(t *testing.T) {
+func testBlushWriteToColour(t *testing.T) {
 	t.Parallel()
 	two := blush.Colourise("TWO", blush.Magenta)
 	three := blush.Colourise("THREE", blush.Red)
@@ -176,6 +214,7 @@ func TestWriteToMultiColour(t *testing.T) {
 			blush.NewExact("TWO", blush.Magenta),
 			blush.NewExact("THREE", blush.Red),
 		},
+		Drop: true,
 	}
 
 	buf := &bytes.Buffer{}
@@ -192,7 +231,7 @@ func TestWriteToMultiColour(t *testing.T) {
 	}
 }
 
-func TestWriteToMultiColourColourMode(t *testing.T) {
+func testBlushWriteToColourNoCutMode(t *testing.T) {
 	t.Parallel()
 	two := blush.Colourise("TWO", blush.Magenta)
 	three := blush.Colourise("THREE", blush.Red)
@@ -203,7 +242,7 @@ func TestWriteToMultiColourColourMode(t *testing.T) {
 	assert.NoError(t, err)
 	b := &blush.Blush{
 		Reader: r,
-		NoCut:  true,
+		Drop:   false,
 		Finders: []blush.Finder{
 			blush.NewExact("TWO", blush.Magenta),
 			blush.NewExact("THREE", blush.Red),
@@ -224,7 +263,7 @@ func TestWriteToMultiColourColourMode(t *testing.T) {
 	assert.EqualValues(t, 1, count)
 }
 
-func TestWriteToMultipleMatchInOneLine(t *testing.T) {
+func testBlushWriteToMultipleMatchInOneLine(t *testing.T) {
 	t.Parallel()
 	line1 := "this is an example\n"
 	line2 := "someone should find this line\n"
@@ -255,7 +294,7 @@ func TestWriteToMultipleMatchInOneLine(t *testing.T) {
 	assert.EqualValues(t, match, example)
 }
 
-func TestBlushClosesReader(t *testing.T) {
+func testBlushClosesReader(t *testing.T) {
 	t.Parallel()
 	var called bool
 	input := bytes.NewBuffer([]byte("DwgQnpvro5bVvrRwBB"))
@@ -274,7 +313,16 @@ func TestBlushClosesReader(t *testing.T) {
 	assert.True(t, called, "didn't close the reader")
 }
 
-func TestBlushReadOneStream(t *testing.T) {
+func testBlushRead(t *testing.T) {
+	t.Parallel()
+	t.Run("OneStream", testBlushReadOneStream)
+	t.Run("TwoStreams", testBlushReadTwoStreams)
+	t.Run("HalfWay", testBlushReadHalfWay)
+	t.Run("OnClosed", testBlushReadOnClosed)
+	t.Run("LongOneLineText", testBlushReadLongOneLineText)
+}
+
+func testBlushReadOneStream(t *testing.T) {
 	t.Parallel()
 	input := bytes.NewBuffer([]byte("one two three four"))
 	match := blush.NewExact("three", blush.Blue)
@@ -309,7 +357,7 @@ func TestBlushReadOneStream(t *testing.T) {
 	}
 }
 
-func TestBlushReadTwoStreams(t *testing.T) {
+func testBlushReadTwoStreams(t *testing.T) {
 	t.Parallel()
 	b1 := []byte("one for all\n")
 	b2 := []byte("all for one\n")
@@ -335,7 +383,7 @@ func TestBlushReadTwoStreams(t *testing.T) {
 	assert.EqualValues(t, expectStr, buf.String())
 }
 
-func TestBlushReadHalfWay(t *testing.T) {
+func testBlushReadHalfWay(t *testing.T) {
 	t.Parallel()
 	b1 := []byte("one for all\n")
 	b2 := []byte("all for one\n")
@@ -355,7 +403,7 @@ func TestBlushReadHalfWay(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestBlushReadOnClosed(t *testing.T) {
+func testBlushReadOnClosed(t *testing.T) {
 	t.Parallel()
 	b1 := []byte("one for all\n")
 	b2 := []byte("all for one\n")
@@ -378,7 +426,7 @@ func TestBlushReadOnClosed(t *testing.T) {
 	assert.Zero(t, n)
 }
 
-func TestBlushReadLongOneLineText(t *testing.T) {
+func testBlushReadLongOneLineText(t *testing.T) {
 	t.Parallel()
 	head := strings.Repeat("a", 10000)
 	tail := strings.Repeat("b", 10000)
@@ -399,7 +447,7 @@ func TestBlushReadLongOneLineText(t *testing.T) {
 	assert.Zero(t, n)
 }
 
-func TestPrintName(t *testing.T) {
+func testBlushPrintName(t *testing.T) {
 	t.Parallel()
 	line1 := "line one\n"
 	line2 := "line two\n"
@@ -416,6 +464,7 @@ func TestPrintName(t *testing.T) {
 		Reader:       r,
 		Finders:      []blush.Finder{blush.NewExact("line", blush.NoColour)},
 		WithFileName: true,
+		Drop:         true,
 	}
 	buf := &bytes.Buffer{}
 	n, err := b.WriteTo(buf)
@@ -429,16 +478,15 @@ func TestPrintName(t *testing.T) {
 }
 
 // testing stdin should not print the name
-func TestStdinPrintName(t *testing.T) {
+func testBlushStdinPrintName(t *testing.T) {
 	t.Parallel()
 	input := "line one"
 	oldStdin := os.Stdin
 	f, err := ioutil.TempFile("", "blush_stdin")
 	assert.NoError(t, err)
 	defer func() {
-		if err = os.Remove(f.Name()); err != nil {
-			t.Error(err)
-		}
+		err := os.Remove(f.Name())
+		assert.NoError(t, err)
 		os.Stdin = oldStdin
 	}()
 	os.Stdin = f
@@ -457,7 +505,7 @@ func TestStdinPrintName(t *testing.T) {
 	assert.NotContains(t, buf.String(), f.Name())
 }
 
-func TestPrintFileName(t *testing.T) {
+func testBlushPrintFilename(t *testing.T) {
 	t.Parallel()
 	p, err := ioutil.TempDir("", "blush_name")
 	assert.NoError(t, err)
@@ -466,9 +514,8 @@ func TestPrintFileName(t *testing.T) {
 	f2, err := ioutil.TempFile(p, "blush_name")
 	assert.NoError(t, err)
 	defer func() {
-		if err = os.RemoveAll(p); err != nil {
-			t.Error(err)
-		}
+		err := os.RemoveAll(p)
+		assert.NoError(t, err)
 	}()
 	line1 := "line one\n"
 	line2 := "line two\n"
@@ -494,6 +541,7 @@ func TestPrintFileName(t *testing.T) {
 				Reader:       r,
 				Finders:      []blush.Finder{blush.NewExact("line", blush.NoColour)},
 				WithFileName: tc.withFilename,
+				Drop:         true,
 			}
 			buf := &bytes.Buffer{}
 			n, err := b.WriteTo(buf)
@@ -514,7 +562,7 @@ func TestPrintFileName(t *testing.T) {
 }
 
 // reading with a small byte slice until the read is done.
-func TestReadContiniously(t *testing.T) {
+func testBlushReadContiniously(t *testing.T) {
 	t.Parallel()
 	var (
 		ret   []byte
@@ -550,7 +598,7 @@ func TestReadContiniously(t *testing.T) {
 	}
 }
 
-func TestReadMiddleOfMatch(t *testing.T) {
+func testBlushReadMiddleOfMatch(t *testing.T) {
 	t.Parallel()
 	var (
 		search = "aa this aa"
@@ -574,7 +622,7 @@ func TestReadMiddleOfMatch(t *testing.T) {
 	assert.Contains(t, string(ret), "this")
 }
 
-func TestReadComplete(t *testing.T) {
+func testBlushReadComplete(t *testing.T) {
 	t.Parallel()
 	input := "123456789"
 	match := blush.NewExact("1", blush.NoColour)
@@ -595,7 +643,7 @@ func TestReadComplete(t *testing.T) {
 	assert.Empty(t, string(bytes.Trim(p, "\x00")))
 }
 
-func TestReadPartComplete(t *testing.T) {
+func testBlushReadPartComplete(t *testing.T) {
 	t.Parallel()
 	input := "123456789"
 	match := blush.NewExact("1", blush.NoColour)
@@ -617,7 +665,7 @@ func TestReadPartComplete(t *testing.T) {
 	assert.EqualValues(t, string(bytes.Trim(p, "\x00")), "456789")
 }
 
-func TestReadPartPartOver(t *testing.T) {
+func testBlushReadPartPartOver(t *testing.T) {
 	t.Parallel()
 	input := "123456789"
 	match := blush.NewExact("1", blush.NoColour)
@@ -645,7 +693,7 @@ func TestReadPartPartOver(t *testing.T) {
 	assert.EqualValues(t, string(bytes.Trim(p, "\x00")), "789")
 }
 
-func TestReadMultiLine(t *testing.T) {
+func testBlushReadMultiLine(t *testing.T) {
 	t.Parallel()
 	input := "line1\nline2\nline3\nline4\n"
 	match := blush.NewExact("l", blush.NoColour)
@@ -680,7 +728,7 @@ func TestReadMultiLine(t *testing.T) {
 	}
 }
 
-func TestReadWriteToMode(t *testing.T) {
+func testBlushReadWriteToMode(t *testing.T) {
 	t.Parallel()
 	p := make([]byte, 1)
 	r := io.NopCloser(bytes.NewBufferString("input"))

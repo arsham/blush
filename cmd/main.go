@@ -62,7 +62,7 @@ func GetBlush(input []string) (*blush.Blush, error) {
 	return &blush.Blush{
 		Finders:      a.finders,
 		Reader:       r,
-		NoCut:        a.colour,
+		Drop:         a.cut,
 		WithFileName: !a.noFilename,
 	}, nil
 }

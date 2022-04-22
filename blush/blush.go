@@ -35,7 +35,7 @@ type Blush struct {
 	Reader       io.ReadCloser
 	LineCache    uint
 	CharCache    uint
-	NoCut        bool // do not cut out non-matched lines.
+	Drop         bool // do not cut out non-matched lines.
 	WithFileName bool
 	closed       bool
 	readLineCh   chan []byte
@@ -123,7 +123,7 @@ func (b *Blush) setup(m mode) error {
 
 func (b *Blush) decorate(input string) (string, bool) {
 	str, ok := lookInto(b.Finders, input)
-	if ok || b.NoCut {
+	if ok || !b.Drop {
 		var prefix string
 		if b.WithFileName {
 			prefix = fileName(b.Reader)

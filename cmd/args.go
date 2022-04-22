@@ -16,7 +16,7 @@ type args struct {
 	matches     []string
 	remaining   []string
 	finders     []blush.Finder
-	colour      bool
+	cut         bool
 	noFilename  bool
 	recursive   bool
 	insensitive bool
@@ -33,7 +33,7 @@ func newArgs(input ...string) (*args, error) {
 		return nil, errShowHelp
 	}
 	a.recursive = a.hasArgs("-R")
-	a.colour = a.hasArgs("-C", "--colour", "--color")
+	a.cut = a.hasArgs("-d", "--drop")
 	a.noFilename = a.hasArgs("-h", "--no-filename")
 	a.insensitive = a.hasArgs("-i")
 

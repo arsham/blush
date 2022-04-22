@@ -16,19 +16,17 @@ func TestArgs(t *testing.T) {
 		name        string
 		input       []string
 		wantErr     error
-		colour      bool
+		cut         bool
 		noFilename  bool
 		recursive   bool
 		insensitive bool
 	}{
 		{name: "help", input: []string{"--help"}, wantErr: errShowHelp},
-		{name: "colour", input: []string{"--colour"}, colour: true},
-		{name: "colour and help", input: []string{"--colour", "--help"}, wantErr: errShowHelp},
-		{name: "colour american", input: []string{"--colour"}, colour: true},
-		{name: "colour short", input: []string{"-C"}, colour: true},
+		{name: "drop", input: []string{"--drop"}, cut: true},
+		{name: "drop short", input: []string{"-d"}, cut: true},
 		{name: "no filename", input: []string{"-h"}, noFilename: true},
 		{name: "no filename long", input: []string{"--no-filename"}, noFilename: true},
-		{name: "rec", input: []string{"-R"}, recursive: true},
+		{name: "recursive", input: []string{"-R"}, recursive: true},
 		{name: "ins", input: []string{"-i"}, insensitive: true},
 		{name: "ins rec", input: []string{"-i", "-R"}, insensitive: true, recursive: true},
 		{name: "rec ins", input: []string{"-R", "-i"}, insensitive: true, recursive: true},
@@ -41,23 +39,24 @@ func TestArgs(t *testing.T) {
 			insensitive: true, recursive: true, noFilename: true,
 		},
 		{
-			name: "nofile rec ins colour", input: []string{"-h", "-R", "-i", "-C"},
-			insensitive: true, recursive: true, noFilename: true, colour: true,
+			name: "nofile rec ins drop", input: []string{"-h", "-R", "-i", "-d"},
+			insensitive: true, recursive: true, noFilename: true, cut: true,
 		},
 	}
 
 	for _, tc := range tcs {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			tc.input = append(tc.input, "*")
 			a, err := newArgs(tc.input...)
 			if tc.wantErr != nil {
 				assert.True(t, errors.Is(err, tc.wantErr))
-			}
-			if err != nil {
 				assert.Nil(t, a)
 				return
 			}
-			assert.Equal(t, tc.colour, a.colour)
+			assert.NoError(t, err)
+			assert.NotNil(t, a)
+			assert.Equal(t, tc.cut, a.cut)
 			assert.Equal(t, tc.noFilename, a.noFilename)
 			assert.Equal(t, tc.recursive, a.recursive)
 			assert.Equal(t, tc.insensitive, a.insensitive)
