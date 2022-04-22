@@ -83,12 +83,13 @@ func getPipe(t *testing.T) *os.File {
 	file, err := ioutil.TempFile("", "blush_pipe")
 	assert.NoError(t, err)
 	name := file.Name()
-	rmFile := func() {
-		err := os.Remove(name)
-		assert.NoError(t, err)
-	}
 	file.Close()
-	rmFile()
+
+	t.Cleanup(func() {
+		err = os.Remove(name)
+		assert.NoError(t, err)
+	})
+
 	file, err = os.OpenFile(name, os.O_CREATE|os.O_RDWR, os.ModeCharDevice|os.ModeDevice)
 	assert.NoError(t, err)
 	return file
