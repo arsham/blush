@@ -482,11 +482,9 @@ func testBlushStdinPrintName(t *testing.T) {
 	t.Parallel()
 	input := "line one"
 	oldStdin := os.Stdin
-	f, err := ioutil.TempFile("", "blush_stdin")
+	f, err := ioutil.TempFile(t.TempDir(), "blush_stdin")
 	assert.NoError(t, err)
 	defer func() {
-		err := os.Remove(f.Name())
-		assert.NoError(t, err)
 		os.Stdin = oldStdin
 	}()
 	os.Stdin = f
@@ -507,16 +505,12 @@ func testBlushStdinPrintName(t *testing.T) {
 
 func testBlushPrintFilename(t *testing.T) {
 	t.Parallel()
-	p, err := ioutil.TempDir("", "blush_name")
-	assert.NoError(t, err)
+	p := t.TempDir()
 	f1, err := ioutil.TempFile(p, "blush_name")
 	assert.NoError(t, err)
 	f2, err := ioutil.TempFile(p, "blush_name")
 	assert.NoError(t, err)
-	defer func() {
-		err := os.RemoveAll(p)
-		assert.NoError(t, err)
-	}()
+
 	line1 := "line one\n"
 	line2 := "line two\n"
 	f1.WriteString(line1)

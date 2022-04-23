@@ -2,7 +2,6 @@ package reader_test
 
 import (
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -26,13 +25,12 @@ type testCase struct {
 
 func setup(t *testing.T, input []testCase) []string {
 	t.Helper()
-	dir, err := ioutil.TempDir("", "blush_walker")
-	assert.NoError(t, err)
+	dir := t.TempDir()
 	ret := make([]string, len(input))
 	for i, d := range input {
 		name := path.Join(dir, d.name)
 		base := path.Dir(name)
-		err = os.MkdirAll(base, os.ModePerm)
+		err := os.MkdirAll(base, os.ModePerm)
 		assert.NoError(t, err)
 		f, err := os.Create(name)
 		assert.NoError(t, err)
@@ -40,10 +38,6 @@ func setup(t *testing.T, input []testCase) []string {
 		f.Close()
 		ret[i] = base
 	}
-	t.Cleanup(func() {
-		err := os.RemoveAll(dir)
-		assert.NoError(t, err)
-	})
 
 	return ret
 }

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path"
 	"testing"
 
@@ -73,12 +72,7 @@ func TestArgsPipe(t *testing.T) {
 }
 
 func TestArgsPaths(t *testing.T) {
-	dir, err := ioutil.TempDir("", "blush_main")
-	assert.NoError(t, err)
-	defer func() {
-		err := os.RemoveAll(dir)
-		assert.NoError(t, err)
-	}()
+	dir := t.TempDir()
 	f1, err := ioutil.TempFile(dir, "main")
 	assert.NoError(t, err)
 	f2, err := ioutil.TempFile(dir, "main")

@@ -36,11 +36,7 @@ func inSlice(niddle string, haystack []string) bool {
 func setup(t *testing.T, count int) (dirs, expect []string) {
 	t.Helper()
 	ret := make(map[string]struct{})
-	tmp, err := ioutil.TempDir("", "blush")
-	assert.NoError(t, err)
-	t.Cleanup(func() {
-		os.RemoveAll(tmp)
-	})
+	tmp := t.TempDir()
 
 	files := []struct {
 		dir   string
@@ -100,14 +96,9 @@ func TestFiles(t *testing.T) {
 
 func TestFilesOnSingleFile(t *testing.T) {
 	t.Parallel()
-	file, err := ioutil.TempFile("", "blush_tools")
+	file, err := ioutil.TempFile(t.TempDir(), "blush_tools")
 	assert.NoError(t, err)
 	name := file.Name()
-	defer func() {
-		if err = os.Remove(name); err != nil {
-			t.Error(err)
-		}
-	}()
 
 	f, err := tools.Files(true, name)
 	assert.NoError(t, err)
@@ -156,8 +147,7 @@ func setupUnpermissioned(t *testing.T) (rootDir, fileB string) {
 	//       /aaa.txt
 	//     /b <--- 0777 perm
 	//       /bbb.txt
-	rootDir, err := ioutil.TempDir("", "blush_dir")
-	assert.NoError(t, err)
+	rootDir = t.TempDir()
 	dirA := path.Join(rootDir, "a")
 	dirB := path.Join(rootDir, "b")
 	dirs := []struct {
@@ -167,19 +157,17 @@ func setupUnpermissioned(t *testing.T) (rootDir, fileB string) {
 		{dirB, "bbb.txt"},
 	}
 	for _, d := range dirs {
-		err = os.Mkdir(d.dir, 0o777)
+		err := os.Mkdir(d.dir, 0o777)
 		assert.NoError(t, err)
 		name := path.Join(d.dir, d.file)
 		_, err = os.Create(name)
 		assert.NoError(t, err)
 	}
-	err = os.Chmod(dirA, 0o222)
+	err := os.Chmod(dirA, 0o222)
 	assert.NoError(t, err)
 	fileB = path.Join(dirB, "bbb.txt")
 	t.Cleanup(func() {
 		err := os.Chmod(dirA, 0o777)
-		assert.NoError(t, err)
-		err = os.RemoveAll(rootDir)
 		assert.NoError(t, err)
 	})
 	return rootDir, fileB
@@ -200,8 +188,7 @@ func TestIgnoreNontPermissionedFolders(t *testing.T) {
 // first returned string is text format, second is binary.
 func setupBinaryFile(t *testing.T) (str, name string) {
 	t.Helper()
-	dir, err := ioutil.TempDir("", "blush_dir")
-	assert.NoError(t, err)
+	dir := t.TempDir()
 
 	txt, err := os.Create(path.Join(dir, "txt"))
 	assert.NoError(t, err)
@@ -213,10 +200,6 @@ func setupBinaryFile(t *testing.T) (str, name string) {
 	txt.WriteString("aaaaa")
 	png.Encode(binary, img)
 
-	t.Cleanup(func() {
-		err := os.RemoveAll(dir)
-		assert.NoError(t, err)
-	})
 	return txt.Name(), binary.Name()
 }
 
@@ -249,12 +232,8 @@ func TestUnPrintableButTextContents(t *testing.T) {
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			file, err := ioutil.TempFile("", "blush_text")
+			file, err := ioutil.TempFile(t.TempDir(), "blush_text")
 			assert.NoError(t, err)
-			defer func() {
-				err := os.Remove(file.Name())
-				assert.NoError(t, err)
-			}()
 			file.WriteString(tc.input)
 			got, err := tools.Files(false, file.Name())
 			assert.NoError(t, err)
@@ -265,15 +244,10 @@ func TestUnPrintableButTextContents(t *testing.T) {
 
 func TestFilesIgnoreDirs(t *testing.T) {
 	t.Parallel()
-	dir, err := ioutil.TempDir("", "blush_dir")
-	assert.NoError(t, err)
-	defer func() {
-		err := os.RemoveAll(dir)
-		assert.NoError(t, err)
-	}()
+	dir := t.TempDir()
 
 	p := path.Join(dir, "a")
-	err = os.MkdirAll(p, 0o777)
+	err := os.MkdirAll(p, 0o777)
 	assert.NoError(t, err)
 
 	file, err := ioutil.TempFile(dir, "b")

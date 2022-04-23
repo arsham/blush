@@ -31,14 +31,13 @@ func (s *stdFile) Close() error {
 
 func newStdFile(t *testing.T, name string) *stdFile {
 	t.Helper()
-	f, err := ioutil.TempFile("", name)
+	f, err := ioutil.TempFile(t.TempDir(), name)
 	if err != nil {
 		t.Fatal(err)
 	}
 	sf := &stdFile{f}
 	t.Cleanup(func() {
 		f.Close()
-		os.Remove(f.Name())
 	})
 	return sf
 }
@@ -69,15 +68,10 @@ func setup(t *testing.T, args string) (stdout, stderr *stdFile) {
 
 func getPipe(t *testing.T) *os.File {
 	t.Helper()
-	file, err := ioutil.TempFile("", "blush_pipe")
+	file, err := ioutil.TempFile(t.TempDir(), "blush_pipe")
 	assert.NoError(t, err)
 	name := file.Name()
 	file.Close()
-
-	t.Cleanup(func() {
-		err = os.Remove(name)
-		assert.NoError(t, err)
-	})
 
 	file, err = os.OpenFile(name, os.O_CREATE|os.O_RDWR, os.ModeCharDevice|os.ModeDevice)
 	assert.NoError(t, err)

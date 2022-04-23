@@ -13,21 +13,15 @@ func getPipe(t *testing.T) *os.File {
 	t.Helper()
 	oldStdin := os.Stdin
 
-	file, err := ioutil.TempFile("", "blush_pipe")
+	file, err := ioutil.TempFile(t.TempDir(), "blush_pipe")
 	assert.NoError(t, err)
 	name := file.Name()
-	rmFile := func() {
-		err := os.Remove(name)
-		assert.NoError(t, err)
-	}
 	file.Close()
-	rmFile()
 	file, err = os.OpenFile(name, os.O_CREATE|os.O_RDWR, os.ModeCharDevice|os.ModeDevice)
 	assert.NoError(t, err)
 	os.Stdin = file
 	t.Cleanup(func() {
 		os.Stdin = oldStdin
-		rmFile()
 	})
 	return file
 }
@@ -45,15 +39,7 @@ func stringSliceEq(a, b []string) bool {
 }
 
 func TestFiles(t *testing.T) {
-	dir, err := ioutil.TempDir("", "blush_main")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		if err = os.RemoveAll(dir); err != nil {
-			t.Error(err)
-		}
-	}()
+	dir := t.TempDir()
 	f1, err := ioutil.TempFile(dir, "main")
 	if err != nil {
 		t.Fatal(err)
