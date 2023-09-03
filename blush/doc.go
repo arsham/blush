@@ -15,7 +15,7 @@
 // Colour instance. If any of hex parts are not between 00 and ff, it creates
 // the DefaultColour value.
 //
-// Important Notes
+// # Important Notes
 //
 // The Read() method could be slow in case of huge inspections. It is
 // recommended to avoid it and use WriteTo() instead; io.Copy() can take care of

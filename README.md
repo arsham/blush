@@ -35,7 +35,7 @@ with the following command:
 $ go install github.com/arsham/blush@latest
 ```
 
-Make sure you have `go>=1.18` installed.
+Make sure you have `go>=1.21` installed.
 
 ## Usage
 

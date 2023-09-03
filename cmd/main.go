@@ -38,7 +38,7 @@ func Main() {
 // GetBlush returns an error if no arguments are provided or it can't find all
 // the passed files in the input.
 //
-// Note
+// # Note
 //
 // The first argument will be dropped as it will be the application's name.
 func GetBlush(input []string) (*blush.Blush, error) {
