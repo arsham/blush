@@ -6,6 +6,7 @@ on:
       - master
       - feature/*
       - bugfix/*
+      - go-1.21
   pull_request:
     branches:
       - master
