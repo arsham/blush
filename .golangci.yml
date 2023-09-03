@@ -12,7 +12,7 @@ linters-settings:
   gocyclo:
     min-complexity: 15
   gofumpt:
-    lang-version: "1.18"
+    lang-version: "1.21"
   goimports:
     local-prefixes: github.com/golangci/golangci-lint
   goconst:
@@ -28,7 +28,7 @@ linters-settings:
   godot:
     capital: true
   gosimple:
-    go: "1.18"
+    go: "1.21"
     checks: ["all"]
   govet:
     settings:
@@ -78,10 +78,10 @@ linters-settings:
   misspell:
     locale: UK
   staticcheck:
-    go: "1.18"
+    go: "1.21"
     checks: ["all"]
   stylecheck:
-    go: "1.18"
+    go: "1.21"
     checks: ["all"]
   unparam:
     check-exported: true
@@ -101,7 +101,7 @@ issues:
   exclude-use-default: false
 
 run:
-  go: "1.18"
+  go: "1.21"
   timeout: 5m
   skip-dirs:
     - tmp

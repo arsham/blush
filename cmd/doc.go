@@ -13,7 +13,7 @@
 // hasArgs(args ...string) function looks for args in input and if it finds it,
 // it removes it and put the rest in the remaining slice.
 //
-// Notes
+// # Notes
 //
 // We are not using the usual flag package because it cannot handle variables in
 // the args and continues grouping of passed arguments.
